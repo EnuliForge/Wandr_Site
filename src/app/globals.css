@@ -9,8 +9,6 @@ html {
   --wandr-rose: #e9b8b5;
   --wandr-joyce: #034545;
   --color-wandr-rose: #e9b8b5;
-
-
 }
 
 @media (min-width: 768px) {
@@ -28,14 +26,48 @@ html {
   --color-wandr-rose: #e9b8b5;
 }
 
-/* Stronger-feeling scroll ease (Chromium/Edge) */
-html {
-  scroll-behavior: smooth;
-}
-
 /* Helps snap feel less “hard” on some browsers */
 @supports (scroll-behavior: smooth) {
   .snap-ease {
     scroll-behavior: smooth;
+  }
+}
+
+/* =========================
+   CASCADE (fail-open)
+   Usage:
+   - Add data-cascade to a wrapper
+   - Add data-cascade-item to each line
+   - Set style={{ "--i": 0 }} on each item for order
+   ========================= */
+
+/* Fail-open: items visible by default */
+[data-cascade-item] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Animate only after wrapper gets .in-view */
+[data-cascade].in-view [data-cascade-item] {
+  opacity: 0;
+  transform: translateY(var(--cascade-y, 12px));
+  animation: cascadeUp var(--cascade-dur, 650ms) ease-out forwards;
+  animation-delay: calc(var(--cascade-stagger, 90ms) * var(--i, 0));
+  will-change: opacity, transform;
+}
+
+@keyframes cascadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-cascade].in-view [data-cascade-item] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

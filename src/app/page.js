@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCascadeInView } from "@/hooks/useCascadeInView";
 
 function VideoLoop({
   src,
@@ -44,9 +45,6 @@ function SectionNumber({ n, position = "top-right" }) {
 
 /**
  * RollingWords (no shift + no bounce + baseline-safe)
- * - measures widest word in px -> locks slot width
- * - slide-up + fade transition
- * - idle state uses transition-none to avoid "bounce back"
  */
 function RollingWords({
   words,
@@ -66,7 +64,6 @@ function RollingWords({
   const nextIndex = (i + 1) % words.length;
   const next = words[nextIndex];
 
-  // ✅ DEFINE IT HERE (inside the function)
   const wordsKey = words.join("|");
 
   useLayoutEffect(() => {
@@ -154,12 +151,13 @@ function RollingWords({
 }
 
 export default function HomePage() {
-  // ✅ wrapper change: ref INSIDE component
   const desktopRef = useRef(null);
   const mobileRef = useRef(null);
 
+  // ✅ new cascade system (viewport-based)
+  useCascadeInView();
 
-  // ✅ wrapper change: custom snap effect INSIDE component
+  // ✅ desktop snap effect (unchanged)
   useEffect(() => {
     const el = desktopRef.current;
     if (!el) return;
@@ -224,11 +222,9 @@ export default function HomePage() {
       const now = Date.now();
       const delta = e.deltaY;
 
-      // ignore tiny trackpad movement
       if (Math.abs(delta) < 18) return;
 
-      // throttle
-      if (now - lastWheelTime < 650) {
+      if (now - lastWheelTime < 850) {
         e.preventDefault();
         return;
       }
@@ -272,15 +268,25 @@ export default function HomePage() {
   }, []);
 
   return (
+    // ... your JSX continues
+
     <main className="min-h-screen bg-[color:var(--wandr-wilfred)] text-white">
-      {/* =========================
+     {/* =========================
     MOBILE VERSION (synced to desktop refs)
     ========================= */}
 <div ref={mobileRef} className="md:hidden">
   {/* 1 — HERO (mobile + RollingWords) */}
-  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
-    <div className="flex flex-col items-center text-center gap-8">
-      <div className="flex flex-col items-center">
+  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+    <div
+      data-cascade
+      style={{
+        "--cascade-y": "14px",
+        "--cascade-dur": "900ms",
+        "--cascade-stagger": "350ms",
+      }}
+      className="flex flex-col items-center text-center gap-8"
+    >
+      <div data-cascade-item className="flex flex-col items-center" style={{ "--i": 0 }}>
         <Image
           src="/wandr-logo-light-1.svg"
           alt="WandR"
@@ -291,7 +297,11 @@ export default function HomePage() {
         />
       </div>
 
-      <h1 className="text-[22px] leading-tight font-extrabold tracking-tight text-white/90 whitespace-nowrap">
+      <h1
+        data-cascade-item
+        className="text-[22px] leading-tight font-extrabold tracking-tight text-white/90 whitespace-nowrap"
+        style={{ "--i": 1 }}
+      >
         We help you{" "}
         <RollingWords
           words={["simplify,", "optimise,", "organise."]}
@@ -305,21 +315,39 @@ export default function HomePage() {
   </section>
 
   {/* 2 — ADMIN (mail.webm) */}
-  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
-    <div className="flex flex-col items-center text-center gap-10">
-      <h2 className="text-[22px] leading-tight font-extrabold tracking-tight max-w-[28ch]">
+  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+    <div
+      data-cascade
+      style={{
+        "--cascade-y": "14px",
+        "--cascade-dur": "900ms",
+        "--cascade-stagger": "350ms",
+      }}
+      className="flex flex-col items-center text-center gap-10"
+    >
+      <h2
+        data-cascade-item
+        className="text-[22px] leading-tight font-extrabold tracking-tight max-w-[28ch]"
+        style={{ "--i": 0 }}
+      >
         No one starts a business dreaming of admin —
         <span className="text-wandr-rose"> except us.</span>
       </h2>
 
-      <VideoLoop
-        src="/mail.webm"
-        className="w-[350px] h-auto"
-        rounded="rounded-3xl"
-        contain
-      />
+      <div data-cascade-item style={{ "--i": 1 }}>
+        <VideoLoop
+          src="/mail.webm"
+          className="w-[350px] h-auto"
+          rounded="rounded-3xl"
+          contain
+        />
+      </div>
 
-      <p className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[26ch]">
+      <p
+        data-cascade-item
+        className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[26ch]"
+        style={{ "--i": 2 }}
+      >
         At <span className="text-wandr-rose">WandR</span>, we help you stay focused
         on your craft — not your inbox.
       </p>
@@ -327,26 +355,48 @@ export default function HomePage() {
   </section>
 
   {/* 3 — JOURNEY (car-swerve.webm) */}
-  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
-    <div className="flex flex-col items-center text-center gap-8">
-      <h2 className="text-[22px] font-extrabold tracking-tight">
+  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+    <div
+      data-cascade
+      style={{
+        "--cascade-y": "14px",
+        "--cascade-dur": "900ms",
+        "--cascade-stagger": "350ms",
+      }}
+      className="flex flex-col items-center text-center gap-8"
+    >
+      <h2
+        data-cascade-item
+        className="text-[22px] font-extrabold tracking-tight"
+        style={{ "--i": 0 }}
+      >
         Every journey is different
       </h2>
 
-      <VideoLoop
-        src="/car-swerve.webm"
-        className="w-full max-w-[520px] h-[240px]"
-        rounded="rounded-3xl"
-        contain
-      />
+      <div data-cascade-item style={{ "--i": 1 }}>
+        <VideoLoop
+          src="/car-swerve.webm"
+          className="w-full max-w-[520px] h-[240px]"
+          rounded="rounded-3xl"
+          contain
+        />
+      </div>
 
-      <p className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[45ch]">
+      <p
+        data-cascade-item
+        className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[45ch]"
+        style={{ "--i": 2 }}
+      >
         we’re here to make yours
         <br />
         easier to navigate.
       </p>
 
-      <p className="text-sm leading-relaxed text-white/80 max-w-[35ch]">
+      <p
+        data-cascade-item
+        className="text-sm leading-relaxed text-white/80 max-w-[35ch]"
+        style={{ "--i": 3 }}
+      >
         At <span className="font-semibold">WandR</span>, we turn structure into an
         art form, giving you the space to focus on what you do best while we take
         care of the rest.
@@ -355,115 +405,208 @@ export default function HomePage() {
   </section>
 
   {/* 4 — SERVICES (admin + timeline) */}
-  <section className="relative min-h-[650px] px-6 pt-10 pb-12 border-b border-white/20">
+  <section className="relative min-h-[850px] px-6 pt-10 pb-12 border-b border-white/20">
     <div className="flex flex-col gap-14">
       <article className="flex flex-col items-center text-center">
-        <VideoLoop
-          src="/admin.webm"
-          className="w-[320px] h-auto mb-6"
-          rounded="rounded-none"
-          contain
-        />
+        <div
+          data-cascade
+          style={{
+            "--cascade-y": "12px",
+            "--cascade-dur": "850ms",
+            "--cascade-stagger": "110ms",
+          }}
+          className="flex flex-col items-center text-center"
+        >
+          <div data-cascade-item style={{ "--i": 0 }}>
+            <VideoLoop
+              src="/admin.webm"
+              className="w-[320px] h-auto mb-6"
+              rounded="rounded-none"
+              contain
+            />
+          </div>
 
-        <h3 className="text-[22px] font-extrabold tracking-tight mb-3">
-          Virtual <span className="text-wandr-rose">Assistance</span>
-        </h3>
+          <h3
+            data-cascade-item
+            className="text-[22px] font-extrabold tracking-tight mb-3"
+            style={{ "--i": 1 }}
+          >
+            Virtual <span className="text-wandr-rose">Assistance</span>
+          </h3>
 
-        <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
-          Inbox, admin, scheduling, documents, follow-ups — we handle the busywork
-          so you can stay in flow.
-        </p>
+          <p
+            data-cascade-item
+            className="text-sm text-white/80 leading-relaxed max-w-[38ch]"
+            style={{ "--i": 2 }}
+          >
+            Inbox, admin, scheduling, documents, follow-ups — we handle the busywork
+            so you can stay in flow.
+          </p>
+        </div>
       </article>
 
       <div className="h-px w-full bg-white/25" />
 
       <article className="flex flex-col items-center text-center">
-        <VideoLoop
-          src="/timeline.webm"
-          className="w-[340px] h-auto mb-6"
-          rounded="rounded-none"
-          contain
-        />
+        <div
+          data-cascade
+          style={{
+            "--cascade-y": "12px",
+            "--cascade-dur": "850ms",
+            "--cascade-stagger": "110ms",
+          }}
+          className="flex flex-col items-center text-center"
+        >
+          <div data-cascade-item style={{ "--i": 0 }}>
+            <VideoLoop
+              src="/timeline.webm"
+              className="w-[340px] h-auto mb-6"
+              rounded="rounded-none"
+              contain
+            />
+          </div>
 
-        <h3 className="text-[22px] font-extrabold tracking-tight mb-3">
-          Project <span className="text-wandr-rose">Management</span>
-        </h3>
+          <h3
+            data-cascade-item
+            className="text-[22px] font-extrabold tracking-tight mb-3"
+            style={{ "--i": 1 }}
+          >
+            Project <span className="text-wandr-rose">Management</span>
+          </h3>
 
-        <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
-          Timelines, coordination, client comms, deliverables — we keep projects
-          organised and moving forward.
-        </p>
+          <p
+            data-cascade-item
+            className="text-sm text-white/80 leading-relaxed max-w-[38ch]"
+            style={{ "--i": 2 }}
+          >
+            Timelines, coordination, client comms, deliverables — we keep projects
+            organised and moving forward.
+          </p>
+        </div>
       </article>
     </div>
   </section>
 
   {/* 5 — EXPERIENCE (car-road.webm) */}
-  <section className="relative min-h-[650px] px-6 pt-20 pb-12 border-b border-white/20 bg-[color:var(--wandr-joyce)]">
-    <div className="flex flex-col items-center text-center gap-6">
-      <div className="text-[64px] font-black leading-none tracking-tight">
+  <section className="relative min-h-[850px] px-6 pt-20 pb-12 border-b border-white/20 bg-[color:var(--wandr-joyce)]">
+    <div
+      data-cascade
+      style={{
+        "--cascade-y": "14px",
+        "--cascade-dur": "850ms",
+        "--cascade-stagger": "110ms",
+      }}
+      className="flex flex-col items-center text-center gap-6"
+    >
+      <div
+        data-cascade-item
+        className="text-[64px] font-black leading-none tracking-tight"
+        style={{ "--i": 0 }}
+      >
         15+
         <span className="block mt-2 text-[64px] font-semibold opacity-90">
           Years
         </span>
       </div>
 
-      <p className="text-sm leading-relaxed text-white/80 max-w-[35ch]">
+      <p
+        data-cascade-item
+        className="text-sm leading-relaxed text-white/80 max-w-[35ch]"
+        style={{ "--i": 1 }}
+      >
         After more than <span className="font-semibold text-white">15 years</span>{" "}
         working for <span className="font-semibold text-white">FMCG</span> and{" "}
-        <span className="font-semibold text-white">
-          creative advertising agencies
-        </span>
-        , we understand the rhythm of projects and what drives them forward.
+        <span className="font-semibold text-white">creative advertising agencies</span>,
+        we understand the rhythm of projects and what drives them forward.
       </p>
 
-      <VideoLoop
-        src="/car-road.webm"
-        className="w-full max-w-[450px] h-auto"
-        rounded="rounded-xl"
-        contain
-      />
+      <div data-cascade-item style={{ "--i": 2 }}>
+        <VideoLoop
+          src="/car-road.webm"
+          className="w-full max-w-[450px] h-auto"
+          rounded="rounded-xl"
+          contain
+        />
+      </div>
     </div>
   </section>
 
   {/* 6 — PATH (flying-car.webm) */}
-  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center bg-[color:var(--wandr-rose)]">
-    <h2 className="font-extrabold tracking-normal leading-[1.1] text-[22px] text-center mx-auto max-w-[30ch] text-[color:var(--wandr-joyce)]">
-      Every path is unique — unpredictable
-      <br />
-      and always evolving
-    </h2>
+  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center bg-[color:var(--wandr-rose)]">
+    <div
+      data-cascade
+      style={{
+        "--cascade-y": "12px",
+        "--cascade-dur": "850ms",
+        "--cascade-stagger": "110ms",
+      }}
+      className="flex flex-col items-center text-center"
+    >
+      <h2
+        data-cascade-item
+        className="font-extrabold tracking-normal leading-[1.1] text-[22px] text-center mx-auto max-w-[30ch] text-[color:var(--wandr-joyce)]"
+        style={{ "--i": 0 }}
+      >
+        Every path is unique — unpredictable
+        <br />
+        and always evolving
+      </h2>
 
-    <div className="mt-10 flex items-center justify-center">
-      <VideoLoop
-        src="/flying-car.webm"
-        className="w-full max-w-[560px] h-[240px]"
-        rounded="rounded-3xl"
-        contain
-      />
+      <div
+        data-cascade-item
+        className="mt-10 flex items-center justify-center"
+        style={{ "--i": 1 }}
+      >
+        <VideoLoop
+          src="/flying-car.webm"
+          className="w-full max-w-[560px] h-[240px]"
+          rounded="rounded-3xl"
+          contain
+        />
+      </div>
+
+      <p
+        data-cascade-item
+        className="mt-10 font-extrabold tracking-normal leading-tight text-[22px] text-center max-w-[30ch] mx-auto text-[color:var(--wandr-joyce)]"
+        style={{ "--i": 2 }}
+      >
+        Our role is to help you find clarity in the clutter and to bring structure
+        to wherever your creativity wanders.
+      </p>
     </div>
-
-    <p className="mt-10 font-extrabold tracking-normal leading-tight text-[22px] text-center max-w-[30ch] mx-auto text-[color:var(--wandr-joyce)]">
-      Our role is to help you find clarity in the clutter and to bring structure
-      to wherever your creativity wanders.
-    </p>
   </section>
 
   {/* 7 — CONTACT */}
-  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
-    <div className="mx-auto max-w-6xl flex flex-col items-center text-center gap-6">
-      <p className="max-w-[52ch] text-[15px] text-white/75">
+  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+    <div
+      data-cascade
+      style={{
+        "--cascade-y": "12px",
+        "--cascade-dur": "850ms",
+        "--cascade-stagger": "110ms",
+      }}
+      className="mx-auto max-w-6xl flex flex-col items-center text-center gap-6"
+    >
+      <p
+        data-cascade-item
+        className="max-w-[52ch] text-[15px] text-white/75"
+        style={{ "--i": 0 }}
+      >
         If you’re ready to simplify your workload and protect your focus, reach
         out and let’s build a system that supports you.
       </p>
 
       <a
+        data-cascade-item
         href="mailto:hello@wandr.com"
         className="w-full max-w-[360px] bg-white text-black font-extrabold tracking-wide py-4 rounded-xl"
+        style={{ "--i": 1 }}
       >
         CONTACT US
       </a>
 
-      <Image
+      <div data-cascade-item style={{ "--i": 2 }}>
+        <Image
           src="/wandr-logo-light-1.svg"
           alt="WandR"
           width={320}
@@ -471,11 +614,12 @@ export default function HomePage() {
           priority
           className="h-auto w-[350px]"
         />
+      </div>
     </div>
 
-    <div className="absolute right-8 bottom-6 text-6xl opacity-25">🦜</div>
-  </section>
+      </section>
 </div>
+{/* ===== END MOBILE ===== */}
 
 
       {/* =========================
