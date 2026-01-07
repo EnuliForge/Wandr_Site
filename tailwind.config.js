@@ -1,17 +1,15 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
-    "./src/app/**/*.{js,jsx,ts,tsx,mdx}",
-    "./src/components/**/*.{js,jsx,ts,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        wandr: {
-          wilfred: "#16908c",
-          rose: "#e9b8b5",
-          joyce: "#034545",
-        },
+        teal: "#197f7b",
+        tealDark: "#0f5453",
+        pink: "#efb7ba",
       },
     },
   },

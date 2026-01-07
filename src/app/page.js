@@ -1,286 +1,730 @@
 "use client";
 
 import Image from "next/image";
-import { FileText, CalendarCheck, Folders } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export default function Home() {
+function VideoLoop({
+  src,
+  className = "",
+  contain = true,
+  rounded = "rounded-3xl",
+}) {
   return (
-    <main className="min-h-screen bg-white text-wandr-joyce">
-      {/* Header */}
-      <header className="w-full border-b border-wandr-joyce/10 bg-white/90 backdrop-blur">
-        <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="relative h-9 w-28">
-              <Image
-                src="/wandr/wandr-logo-dg.svg" // change if needed
-                alt="WandR logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <span className="hidden sm:inline text-[0.65rem] tracking-[0.35em] uppercase text-wandr-joyce/70">
-              Virtual assistant
-            </span>
-          </div>
-          <a
-            href="#contact"
-            className="text-xs font-medium tracking-wide uppercase rounded-full border border-wandr-joyce/30 px-4 py-1.5 text-wandr-joyce hover:bg-wandr-joyce hover:text-wandr-rose transition-colors"
-          >
-            Let&apos;s talk
-          </a>
-        </div>
-      </header>
+    <video
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="metadata"
+      className={`${className} ${rounded} ${
+        contain ? "object-contain" : "object-cover"
+      }`}
+    >
+      <source src={src} type="video/webm" />
+    </video>
+  );
+}
 
-      {/* Hero */}
-<section
-  className="relative min-h-[70vh] flex items-center justify-center px-6 py-20 bg-fixed bg-center bg-cover"
-  style={{ backgroundImage: "url('/wandr/wandr-bg.webp')" }}
->
-  {/* Blur layer */}
-  <div className="absolute inset-0 backdrop-blur-sm"></div>
+function SectionNumber({ n, position = "top-right" }) {
+  const pos =
+    position === "top-right"
+      ? "top-3 right-4"
+      : position === "right-mid"
+      ? "top-1/2 -translate-y-1/2 right-4"
+      : "top-3 right-4";
 
-  {/* Overlay panel */}
-  <div className="relative bg-wandr-joyce rounded-2xl p-10 text-center max-w-3xl text-white space-y-6">
+  return (
+    <div
+      className={`absolute ${pos} text-white/35 font-extrabold text-2xl select-none`}
+    >
+      {n}
+    </div>
+  );
+}
 
-    {/* Centered Logo */}
-    <div className="flex justify-center">
-      <div className="relative h-14 w-40">
+/**
+ * RollingWords (no shift + no bounce + baseline-safe)
+ * - measures widest word in px -> locks slot width
+ * - slide-up + fade transition
+ * - idle state uses transition-none to avoid "bounce back"
+ */
+function RollingWords({
+  words,
+  intervalMs = 1100,
+  durationMs = 350,
+  className = "",
+  slotClassName = "",
+}) {
+  const [i, setI] = useState(0);
+  const [phase, setPhase] = useState("idle");
+  const [slotW, setSlotW] = useState(null);
+
+  const measurerRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  const current = words[i];
+  const nextIndex = (i + 1) % words.length;
+  const next = words[nextIndex];
+
+  // ✅ DEFINE IT HERE (inside the function)
+  const wordsKey = words.join("|");
+
+  useLayoutEffect(() => {
+    if (!measurerRef.current) return;
+    const spans = measurerRef.current.querySelectorAll("[data-word]");
+    let max = 0;
+    spans.forEach((s) => {
+      const w = Math.ceil(s.getBoundingClientRect().width);
+      if (w > max) max = w;
+    });
+    setSlotW(max);
+  }, [wordsKey, className]);
+
+  useEffect(() => {
+    const tick = () => {
+      setPhase("animating");
+      timeoutRef.current = setTimeout(() => {
+        setI(nextIndex);
+        setPhase("idle");
+      }, durationMs);
+    };
+
+    const interval = setInterval(tick, intervalMs);
+
+    return () => {
+      clearInterval(interval);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [intervalMs, durationMs, nextIndex]);
+
+  const transitionClass =
+    phase === "animating" ? "transition-all ease-out" : "transition-none";
+
+  return (
+    <>
+      {/* hidden measurer */}
+      <span
+        ref={measurerRef}
+        className="absolute -left-[9999px] top-0 opacity-0 pointer-events-none whitespace-nowrap"
+        aria-hidden="true"
+      >
+        {words.map((w) => (
+          <span key={w} data-word className={className}>
+            {w}
+          </span>
+        ))}
+      </span>
+
+      {/* slot */}
+      <span
+        className={`relative inline-flex align-baseline overflow-hidden whitespace-nowrap ${slotClassName}`}
+        style={slotW ? { width: `${slotW}px` } : undefined}
+      >
+        {/* ghost establishes baseline/height */}
+        <span className={`relative inline-block ${className} opacity-0`}>
+          {current}
+        </span>
+
+        {/* current */}
+        <span
+          className={`absolute left-0 top-0 ${transitionClass} ${
+            phase === "animating"
+              ? "-translate-y-full opacity-0"
+              : "translate-y-0 opacity-100"
+          }`}
+          style={{ transitionDuration: `${durationMs}ms` }}
+        >
+          <span className={className}>{current}</span>
+        </span>
+
+        {/* next */}
+        <span
+          className={`absolute left-0 top-0 ${transitionClass} ${
+            phase === "animating"
+              ? "translate-y-0 opacity-100"
+              : "translate-y-full opacity-0"
+          }`}
+          style={{ transitionDuration: `${durationMs}ms` }}
+        >
+          <span className={className}>{next}</span>
+        </span>
+      </span>
+    </>
+  );
+}
+
+export default function HomePage() {
+  // ✅ wrapper change: ref INSIDE component
+  const desktopRef = useRef(null);
+  const mobileRef = useRef(null);
+
+
+  // ✅ wrapper change: custom snap effect INSIDE component
+  useEffect(() => {
+    const el = desktopRef.current;
+    if (!el) return;
+
+    const sections = Array.from(el.querySelectorAll("[data-snap]"));
+    if (sections.length === 0) return;
+
+    let isAnimating = false;
+    let lastWheelTime = 0;
+
+    const easeInOutCubic = (t) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const animateScrollTo = (targetTop, duration = 950) => {
+      const startTop = el.scrollTop;
+      const diff = targetTop - startTop;
+      if (Math.abs(diff) < 2) return;
+
+      isAnimating = true;
+      const start = performance.now();
+
+      const step = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = easeInOutCubic(t);
+        el.scrollTop = startTop + diff * eased;
+
+        if (t < 1) requestAnimationFrame(step);
+        else isAnimating = false;
+      };
+
+      requestAnimationFrame(step);
+    };
+
+    const getClosestSectionIndex = () => {
+      const y = el.scrollTop;
+      let best = 0;
+      let bestDist = Infinity;
+
+      for (let i = 0; i < sections.length; i++) {
+        const top = sections[i].offsetTop;
+        const dist = Math.abs(top - y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      }
+      return best;
+    };
+
+    const goTo = (dir) => {
+      const i = getClosestSectionIndex();
+      const next = Math.max(0, Math.min(sections.length - 1, i + dir));
+      animateScrollTo(sections[next].offsetTop, 950);
+    };
+
+    const onWheel = (e) => {
+      if (isAnimating) {
+        e.preventDefault();
+        return;
+      }
+
+      const now = Date.now();
+      const delta = e.deltaY;
+
+      // ignore tiny trackpad movement
+      if (Math.abs(delta) < 18) return;
+
+      // throttle
+      if (now - lastWheelTime < 650) {
+        e.preventDefault();
+        return;
+      }
+
+      lastWheelTime = now;
+      e.preventDefault();
+
+      goTo(delta > 0 ? 1 : -1);
+    };
+
+    const onKeyDown = (e) => {
+      if (isAnimating) return;
+
+      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
+        e.preventDefault();
+        goTo(1);
+      }
+      if (e.key === "ArrowUp" || e.key === "PageUp") {
+        e.preventDefault();
+        goTo(-1);
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        animateScrollTo(0, 950);
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        const last = sections[sections.length - 1];
+        animateScrollTo(last.offsetTop, 950);
+      }
+    };
+
+    el.setAttribute("tabindex", "0");
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-[color:var(--wandr-wilfred)] text-white">
+      {/* =========================
+    MOBILE VERSION (synced to desktop refs)
+    ========================= */}
+<div ref={mobileRef} className="md:hidden">
+  {/* 1 — HERO (mobile + RollingWords) */}
+  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
+    <div className="flex flex-col items-center text-center gap-8">
+      <div className="flex flex-col items-center">
         <Image
-          src="/wandr/wandr-logo-light.svg"
-          alt="WandR logo"
-          fill
-          className="object-contain"
+          src="/wandr-logo-light-1.svg"
+          alt="WandR"
+          width={320}
+          height={110}
           priority
+          className="h-auto w-[350px]"
         />
       </div>
+
+      <h1 className="text-[22px] leading-tight font-extrabold tracking-tight text-white/90 whitespace-nowrap">
+        We help you{" "}
+        <RollingWords
+          words={["simplify,", "optimise,", "organise."]}
+          intervalMs={900}
+          durationMs={260}
+          className="text-wandr-rose"
+          slotClassName="justify-center"
+        />
+      </h1>
+    </div>
+  </section>
+
+  {/* 2 — ADMIN (mail.webm) */}
+  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
+    <div className="flex flex-col items-center text-center gap-10">
+      <h2 className="text-[22px] leading-tight font-extrabold tracking-tight max-w-[28ch]">
+        No one starts a business dreaming of admin —
+        <span className="text-wandr-rose"> except us.</span>
+      </h2>
+
+      <VideoLoop
+        src="/mail.webm"
+        className="w-[350px] h-auto"
+        rounded="rounded-3xl"
+        contain
+      />
+
+      <p className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[26ch]">
+        At <span className="text-wandr-rose">WandR</span>, we help you stay focused
+        on your craft — not your inbox.
+      </p>
+    </div>
+  </section>
+
+  {/* 3 — JOURNEY (car-swerve.webm) */}
+  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
+    <div className="flex flex-col items-center text-center gap-8">
+      <h2 className="text-[22px] font-extrabold tracking-tight">
+        Every journey is different
+      </h2>
+
+      <VideoLoop
+        src="/car-swerve.webm"
+        className="w-full max-w-[520px] h-[240px]"
+        rounded="rounded-3xl"
+        contain
+      />
+
+      <p className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[45ch]">
+        we’re here to make yours
+        <br />
+        easier to navigate.
+      </p>
+
+      <p className="text-sm leading-relaxed text-white/80 max-w-[35ch]">
+        At <span className="font-semibold">WandR</span>, we turn structure into an
+        art form, giving you the space to focus on what you do best while we take
+        care of the rest.
+      </p>
+    </div>
+  </section>
+
+  {/* 4 — SERVICES (admin + timeline) */}
+  <section className="relative min-h-[650px] px-6 pt-10 pb-12 border-b border-white/20">
+    <div className="flex flex-col gap-14">
+      <article className="flex flex-col items-center text-center">
+        <VideoLoop
+          src="/admin.webm"
+          className="w-[320px] h-auto mb-6"
+          rounded="rounded-none"
+          contain
+        />
+
+        <h3 className="text-[22px] font-extrabold tracking-tight mb-3">
+          Virtual <span className="text-wandr-rose">Assistance</span>
+        </h3>
+
+        <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
+          Inbox, admin, scheduling, documents, follow-ups — we handle the busywork
+          so you can stay in flow.
+        </p>
+      </article>
+
+      <div className="h-px w-full bg-white/25" />
+
+      <article className="flex flex-col items-center text-center">
+        <VideoLoop
+          src="/timeline.webm"
+          className="w-[340px] h-auto mb-6"
+          rounded="rounded-none"
+          contain
+        />
+
+        <h3 className="text-[22px] font-extrabold tracking-tight mb-3">
+          Project <span className="text-wandr-rose">Management</span>
+        </h3>
+
+        <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
+          Timelines, coordination, client comms, deliverables — we keep projects
+          organised and moving forward.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  {/* 5 — EXPERIENCE (car-road.webm) */}
+  <section className="relative min-h-[650px] px-6 pt-20 pb-12 border-b border-white/20 bg-[color:var(--wandr-joyce)]">
+    <div className="flex flex-col items-center text-center gap-6">
+      <div className="text-[64px] font-black leading-none tracking-tight">
+        15+
+        <span className="block mt-2 text-[64px] font-semibold opacity-90">
+          Years
+        </span>
+      </div>
+
+      <p className="text-sm leading-relaxed text-white/80 max-w-[35ch]">
+        After more than <span className="font-semibold text-white">15 years</span>{" "}
+        working for <span className="font-semibold text-white">FMCG</span> and{" "}
+        <span className="font-semibold text-white">
+          creative advertising agencies
+        </span>
+        , we understand the rhythm of projects and what drives them forward.
+      </p>
+
+      <VideoLoop
+        src="/car-road.webm"
+        className="w-full max-w-[450px] h-auto"
+        rounded="rounded-xl"
+        contain
+      />
+    </div>
+  </section>
+
+  {/* 6 — PATH (flying-car.webm) */}
+  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center bg-[color:var(--wandr-rose)]">
+    <h2 className="font-extrabold tracking-normal leading-[1.1] text-[22px] text-center mx-auto max-w-[30ch] text-[color:var(--wandr-joyce)]">
+      Every path is unique — unpredictable
+      <br />
+      and always evolving
+    </h2>
+
+    <div className="mt-10 flex items-center justify-center">
+      <VideoLoop
+        src="/flying-car.webm"
+        className="w-full max-w-[560px] h-[240px]"
+        rounded="rounded-3xl"
+        contain
+      />
     </div>
 
-    <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
-      Virtual Assistant &amp; Business Support{" "}
-      <span className="text-wandr-rose">for Creative Professionals</span>
-    </h1>
-
-    <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto">
-      No one starts a business dreaming of admin — except us. At WandR, we help
-      creatives stay focused on their craft — not their inbox.
+    <p className="mt-10 font-extrabold tracking-normal leading-tight text-[22px] text-center max-w-[30ch] mx-auto text-[color:var(--wandr-joyce)]">
+      Our role is to help you find clarity in the clutter and to bring structure
+      to wherever your creativity wanders.
     </p>
+  </section>
 
-    <div className="flex justify-center gap-3 pt-2">
+  {/* 7 — CONTACT */}
+  <section className="relative min-h-[650px] px-6 py-16 flex flex-col justify-center">
+    <div className="mx-auto max-w-6xl flex flex-col items-center text-center gap-6">
+      <p className="max-w-[52ch] text-[15px] text-white/75">
+        If you’re ready to simplify your workload and protect your focus, reach
+        out and let’s build a system that supports you.
+      </p>
+
       <a
-        href="#services"
-        className="px-5 py-2.5 text-sm rounded-full bg-white text-wandr-joyce hover:bg-wandr-rose hover:text-wandr-joyce transition-colors"
+        href="mailto:hello@wandr.com"
+        className="w-full max-w-[360px] bg-white text-black font-extrabold tracking-wide py-4 rounded-xl"
       >
-        View services
+        CONTACT US
       </a>
+
+      <Image
+          src="/wandr-logo-light-1.svg"
+          alt="WandR"
+          width={320}
+          height={110}
+          priority
+          className="h-auto w-[350px]"
+        />
     </div>
 
-  </div>
-</section>
+    <div className="absolute right-8 bottom-6 text-6xl opacity-25">🦜</div>
+  </section>
+</div>
 
-      {/* Services */}
-      <section
-        id="services"
-        className="px-6 py-16 bg-wandr-wilfred/5 text-wandr-joyce"
-      >
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-2">
-            What we can do for you
-          </h2>
-          <p className="text-xs uppercase tracking-[0.25em] text-wandr-joyce/60 mb-6">
-            Support that fits the way you work
-          </p>
-          <p className="text-wandr-joyce/80 mb-10 max-w-3xl">
-            Every creative journey is different — we’re here to make yours
-            easier to navigate. At WandR, we turn structure into an art form,
-            giving you the space to focus on what you do best while we take care
-            of the rest.
-          </p>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            {/* 1 — Virtual Assistance */}
-            <div className="border border-wandr-wilfred/30 rounded-2xl p-6 bg-white shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <FileText className="h-7 w-7 text-wandr-joyce" />
-                <h3 className="font-semibold text-wandr-joyce">
-                  Virtual Assistance for Creatives
-                </h3>
-              </div>
-              <p className="text-sm text-wandr-joyce/80">
-                Reliable, detail-driven support to keep your business running
-                smoothly — from inbox and calendar management to client
-                communication and document organization.
-              </p>
+      {/* =========================
+          DESKTOP (custom snapping)
+          ========================= */}
+      <div ref={desktopRef} className="hidden md:block h-screen overflow-y-auto">
+        {/* 1 — HERO */}
+        <section
+          data-snap
+          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
+        >
+          <div className="mx-auto max-w-6xl w-full flex items-center justify-between gap-10">
+            <div className="flex flex-col justify-center">
+              <Image
+                src="/wandr-logo-light-1.svg"
+                alt="WandR"
+                width={480}
+                height={160}
+                priority
+                className="h-auto w-[420px] max-w-full"
+              />
             </div>
 
-            {/* 2 — Project Support */}
-            <div className="border border-wandr-wilfred/30 rounded-2xl p-6 bg-white shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <CalendarCheck className="h-7 w-7 text-wandr-joyce" />
-                <h3 className="font-semibold text-wandr-joyce">
-                  Project &amp; Production Support
-                </h3>
-              </div>
-              <p className="text-sm text-wandr-joyce/80">
-                Stay on track from concept to completion. We manage scheduling,
-                coordination, and communication so your ideas never get lost in
-                logistics.
-              </p>
+            <h1 className="text-right text-[34px] leading-tight font-extrabold tracking-normal text-white whitespace-nowrap">
+              We help you{" "}
+              <RollingWords
+                words={["simplify,", "optimise,", "organise."]}
+                intervalMs={900} // ~0.9s per word
+                durationMs={260} // quick slide
+                className="text-wandr-rose"
+                slotClassName="justify-end"
+              />
+            </h1>
+          </div>
+        </section>
+
+        {/* 2 — ADMIN (mail.webm) */}
+        <section
+          data-snap
+          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
+        >
+          <div className="mx-auto max-w-6xl w-full grid gap-10 grid-cols-[1.2fr_1fr_1fr] items-center">
+            <h2 className="text-[34px] leading-tight font-extrabold tracking-normal">
+              No one starts a business dreaming of admin —
+              <span className="text-wandr-rose"> except us.</span>
+            </h2>
+
+            {/* OFFSET LEFT: use negative translate-x */}
+            <div className="w-[520px] h-auto -translate-x-[80px]">
+              <VideoLoop
+                src="/mail.webm"
+                className="h-auto w-[520px] max-w-full"
+                rounded="rounded-3xl"
+                contain
+              />
             </div>
 
-            {/* 3 — Business Organization */}
-            <div className="border border-wandr-wilfred/30 rounded-2xl p-6 bg-white shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <Folders className="h-7 w-7 text-wandr-joyce" />
-                <h3 className="font-semibold text-wandr-joyce">
-                  Creative Business Organization
-                </h3>
-              </div>
-              <p className="text-sm text-wandr-joyce/80">
-                Bring clarity to creative chaos. From file systems and workflow
-                design to research and project tracking, we help you build
-                structure that supports your momentum.
+            <p className="text-[34px] leading-tight font-extrabold tracking-normal">
+              At <span className="text-wandr-rose">WandR</span>, we help you stay
+              focused on your craft — not your inbox.
+            </p>
+          </div>
+        </section>
+
+        {/* 3 — JOURNEY (flying-car.webm) */}
+        <section
+          data-snap
+          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
+        >
+          <div className="mx-auto max-w-6xl w-full grid grid-cols-[2fr_1fr] gap-12 items-center">
+            <div className="flex justify-center">
+              <VideoLoop
+                src="/car-swerve.webm"
+                className="w-full max-w-[780px] h-auto"
+                rounded="rounded-3xl"
+                contain
+              />
+            </div>
+
+            <div>
+              <h2 className="text-[40px] font-extrabold tracking-[-0.02em] leading-tight text-white">
+                Every journey is different
+              </h2>
+
+              <p className="mt-6 text-[22px] font-extrabold tracking-normal text-white">
+                we’re here to make yours
+                <br />
+                easier to navigate.
+              </p>
+
+              <p className="mt-6 text-sm leading-relaxed text-white/80 max-w-[46ch]">
+                At <span className="font-semibold">WandR</span>, we turn structure
+                into an art form, giving you the space to focus on what you do
+                best while we take care of the rest.
               </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Why WandR */}
-      <section className="px-6 py-16 bg-wandr-joyce text-white">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h2 className="text-2xl md:text-3xl font-semibold">Why WandR</h2>
-          <p className="text-white/90">
-            Every creative path is unique — unpredictable, inspiring, and always
-            evolving. After 15+ years working with creatives we understand the
-            rhythm of creative industries: the long hours, shifting priorities,
-            and constant movement between inspiration and delivery.
-          </p>
-          <p className="text-white/90">
-            WandR combines practical virtual assistant services with a deep
-            respect for creative flow, helping you reclaim your time, simplify
-            your processes, and focus on your craft.
-          </p>
-        </div>
-      </section>
+        {/* 4 — SERVICES (admin + timeline) */}
+        <section
+          data-snap
+          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
+        >
+          <div className="mx-auto max-w-6xl w-full">
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-16 items-center">
+              <div className="flex flex-col items-center text-center">
+                <VideoLoop
+                  src="/admin.webm"
+                  className="w-[380px] h-auto mb-6"
+                  rounded="rounded-none"
+                  contain
+                />
+                <h3 className="text-[34px] font-extrabold tracking-tight mb-3">
+                  Virtual <span className="text-wandr-rose">Assistance</span>
+                </h3>
+                <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
+                  Inbox, admin, scheduling, documents, follow-ups — we handle
+                  the busywork so you can stay in flow.
+                </p>
+              </div>
 
-      {/* Our Journey */}
-      <section className="px-6 py-16 bg-white">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h2 className="text-2xl md:text-3xl font-semibold text-wandr-joyce">
-            Our Journey
-          </h2>
-          <p className="text-wandr-joyce/90">
-            WandR began with a simple belief: creative professionals shouldn’t
-            have to choose between artistic focus and business structure. We
-            find joy in the details that others overlook — because we know that
-            behind every great creative vision lies a foundation of calm,
-            consistent support.
-          </p>
-        </div>
-      </section>
+              <div className="h-[260px] w-px bg-white/30" />
 
-      {/* Contact / Let’s Work Together */}
-      <section
-        id="contact"
-        className="px-6 py-16 bg-wandr-rose text-wandr-joyce"
-      >
-        <div className="max-w-5xl mx-auto grid gap-10 md:grid-cols-2 items-start">
-          <div className="space-y-4">
-            <h2 className="text-2xl md:text-3xl font-semibold">
-              Let&apos;s work together
+              <div className="flex flex-col items-center text-center">
+                <VideoLoop
+                  src="/timeline.webm"
+                  className="w-[420px] h-auto mb-6"
+                  rounded="rounded-none"
+                  contain
+                />
+                <h3 className="text-[34px] font-extrabold tracking-tight mb-3">
+                  Project <span className="text-wandr-rose">Management</span>
+                </h3>
+                <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
+                  Timelines, coordination, client comms, deliverables — we keep
+                  projects organised and moving forward.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 5 — EXPERIENCE (car-swerve.webm) */}
+        <section
+          data-snap
+  className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center bg-[color:var(--wandr-joyce)]"
+>
+          <div className="mx-auto max-w-6xl w-full flex flex-col justify-center gap-10">
+            {/* top: text (slightly higher to balance gaps) */}
+            <div className="grid gap-10 grid-cols-[.6fr_1.4fr] items-center -translate-y-[70px]">
+              <div className="flex flex-col items-end text-right">
+                <div className="text-[58px] font-black leading-none tracking-tight">
+                  15+
+                </div>
+                <div className="mt-2 text-[58px] font-semibold text-white/90">
+                  Years
+                </div>
+              </div>
+
+              <p className="text-[16px] leading-[2.05] text-white/85 max-w-[62ch]">
+                After more than{" "}
+                <span className="font-semibold text-white">15 years</span>{" "}
+                working for{" "}
+                <span className="font-semibold text-white">FMCG</span> and{" "}
+                <span className="font-semibold text-white">
+                  creative advertising agencies
+                </span>
+                , we understand the rhythm of projects and what drives them
+                forward: the long hours, shifting priorities, and constant
+                movement between inspiration and delivery.
+              </p>
+            </div>
+
+            {/* bottom: road bar + car */}
+            <div className="relative h-[90px] w-full">
+              <div className="absolute right-40 top-1/2 -translate-y-[50%]">
+                <VideoLoop
+                  src="/car-road.webm"
+                  className="w-[850px] h-auto"
+                  rounded="rounded-xl"
+                  contain
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 6 — PATH (parrot-car.webm) */}
+        <section
+          data-snap
+          className="md:min-h-[850px] lg:min-h-[900px] bg-[color:var(--wandr-rose)] px-6 flex items-center"
+        >
+          <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-12">
+            <h2 className="font-extrabold tracking-normal leading-[1.05] text-[34px] text-center mx-auto text-[color:var(--wandr-joyce)]">
+              <span className="whitespace-nowrap">
+                Every path is unique — unpredictable
+              </span>
+              <br />
+              <span className="whitespace-nowrap">and always evolving</span>
             </h2>
-            <p className="text-xs uppercase tracking-[0.25em] text-wandr-joyce/70">
-              You don&apos;t have to do it all alone
+
+            <div className="w-full flex items-center justify-center">
+              <VideoLoop
+                src="/flying-car.webm"
+                className="w-[720px] h-[360px]"
+                rounded="rounded-3xl"
+                contain
+              />
+            </div>
+
+            <p className="font-extrabold tracking-normal leading-[1.15] text-[34px] max-w-[36ch] text-[color:var(--wandr-joyce)]">
+              Our role is to help you find clarity in the clutter and to bring
+              structure to wherever your creativity wanders.
             </p>
-            <p className="text-wandr-joyce/90">
-              If you’re ready to simplify your workload and refocus on what you
-              love creating, WandR can help you find your rhythm and direction
-              again.
+          </div>
+        </section>
+
+        {/* 7 — CONTACT */}
+        <section
+          data-snap
+          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
+        >
+          <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-6">
+            <p className="max-w-[52ch] text-xs text-white/75">
+              If you’re ready to simplify your workload and protect your focus,
+              reach out and let’s build a system that supports you.
             </p>
-             </div>
 
-          <form
-            className="space-y-4 bg-white/90 backdrop-blur-md rounded-2xl p-6 shadow-lg"
-            onSubmit={async (e) => {
-              e.preventDefault();
-
-              const form = e.currentTarget;
-              const data = new FormData(form);
-
-              const res = await fetch("https://formspree.io/f/xkgkeogn", {
-                method: "POST",
-                body: data,
-                headers: {
-                  Accept: "application/json",
-                },
-              });
-
-              if (res.ok) {
-                form.reset();
-                window.location.href = "/thank-you";
-              } else {
-                alert(
-                  "Something went wrong. Please try again or email us directly."
-                );
-              }
-            }}
-          >
-            <div>
-              <label className="block text-sm mb-1 text-wandr-joyce">
-                Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="w-full border border-wandr-wilfred/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wandr-wilfred bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm mb-1 text-wandr-joyce">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                required
-                className="w-full border border-wandr-wilfred/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wandr-wilfred bg-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm mb-1 text-wandr-joyce">
-                How can we support you?
-              </label>
-              <textarea
-                rows={4}
-                name="message"
-                required
-                className="w-full border border-wandr-wilfred/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wandr-wilfred bg-white"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium rounded-full bg-wandr-joyce text-wandr-rose hover:bg-wandr-wilfred transition-colors"
+            <a
+              href="mailto:hello@wandr.com"
+              className="w-full max-w-[360px] bg-white text-black font-extrabold tracking-wide py-4 rounded-xl"
             >
-              Send message
-            </button>
-          </form>
-        </div>
-      
-            </section> {/* Contact section ends here */}
+              CONTACT US
+            </a>
 
-      {/* Footer */}
-      <footer className="w-full bg-white text-wandr-joyce/70 text-xs py-6 border-t border-wandr-joyce/10">
-        <div className="max-w-5xl mx-auto text-center px-6">
-          Wilfred &amp; Rose Trading • Goedewerf 83, 1357AR Almere, Netherlands • +31 64 454 7195‬
-        </div>
-      </footer>
+            <Image
+          src="/wandr-logo-light-1.svg"
+          alt="WandR"
+          width={320}
+          height={110}
+          priority
+          className="h-auto w-[350px]"
+        />
+          </div>
 
-
+          <div className="absolute right-8 bottom-6 text-6xl opacity-25">🦜</div>
+        </section>
+      </div>
     </main>
   );
 }
