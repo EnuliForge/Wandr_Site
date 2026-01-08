@@ -4,12 +4,8 @@ import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCascadeInView } from "@/hooks/useCascadeInView";
 
-function VideoLoop({
-  src,
-  className = "",
-  contain = true,
-  rounded = "rounded-3xl",
-}) {
+function VideoLoop({ src, className = "", contain = true, rounded = "rounded-3xl" }) {
+  const base = src.replace(/\.(webm|mp4)$/i, "");
   return (
     <video
       autoPlay
@@ -17,14 +13,17 @@ function VideoLoop({
       muted
       playsInline
       preload="metadata"
-      className={`${className} ${rounded} ${
-        contain ? "object-contain" : "object-cover"
-      }`}
+      className={`${className} ${rounded} ${contain ? "object-contain" : "object-cover"}`}
     >
-      <source src={src} type="video/webm" />
+      {/* iOS/Safari-friendly alpha */}
+      <source src={`${base}.mp4`} type='video/mp4; codecs="hvc1"' />
+
+      {/* everyone else */}
+      <source src={`${base}.webm`} type="video/webm" />
     </video>
   );
 }
+
 
 function SectionNumber({ n, position = "top-right" }) {
   const pos =
@@ -270,13 +269,19 @@ export default function HomePage() {
   return (
     // ... your JSX continues
 
-    <main className="min-h-screen bg-[color:var(--wandr-wilfred)] text-white">
+    <main className="min-h-screen bg-[color:var(--wandr-wilfred)] text-white overflow-hidden md:overflow-visible">
+
      {/* =========================
     MOBILE VERSION (synced to desktop refs)
     ========================= */}
-<div ref={mobileRef} className="md:hidden">
+<div
+  ref={mobileRef}
+  className="md:hidden h-[100svh] overflow-y-auto snap-y snap-proximity snap-ease [-webkit-overflow-scrolling:touch]"
+>
+
   {/* 1 — HERO (mobile + RollingWords) */}
-  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
+
     <div
       data-cascade
       style={{
@@ -315,7 +320,8 @@ export default function HomePage() {
   </section>
 
   {/* 2 — ADMIN (mail.webm) */}
-  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
+
     <div
       data-cascade
       style={{
@@ -355,7 +361,8 @@ export default function HomePage() {
   </section>
 
   {/* 3 — JOURNEY (car-swerve.webm) */}
-  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
+
     <div
       data-cascade
       style={{
@@ -405,7 +412,8 @@ export default function HomePage() {
   </section>
 
   {/* 4 — SERVICES (admin + timeline) */}
-  <section className="relative min-h-[850px] px-6 pt-10 pb-12 border-b border-white/20">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
+
     <div className="flex flex-col gap-14">
       <article className="flex flex-col items-center text-center">
         <div
@@ -488,7 +496,8 @@ export default function HomePage() {
   </section>
 
   {/* 5 — EXPERIENCE (car-road.webm) */}
-  <section className="relative min-h-[850px] px-6 pt-20 pb-12 border-b border-white/20 bg-[color:var(--wandr-joyce)]">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-joyce">
+
     <div
       data-cascade
       style={{
@@ -532,7 +541,8 @@ export default function HomePage() {
   </section>
 
   {/* 6 — PATH (flying-car.webm) */}
-  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center bg-[color:var(--wandr-rose)]">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-rose">
+
     <div
       data-cascade
       style={{
@@ -577,7 +587,8 @@ export default function HomePage() {
   </section>
 
   {/* 7 — CONTACT */}
-  <section className="relative min-h-[850px] px-6 py-16 flex flex-col justify-center">
+  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always">
+
     <div
       data-cascade
       style={{

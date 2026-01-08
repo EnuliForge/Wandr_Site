@@ -15,7 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={heebo.className}>
+      <body className={`${heebo.className} js`}>
         {children}
       </body>
     </html>
