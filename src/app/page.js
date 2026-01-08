@@ -191,158 +191,46 @@ export default function HomePage() {
   const desktopRef = useRef(null);
   const mobileRef = useRef(null);
 
-  // ✅ new cascade system (viewport-based)
+  // ✅ keep this (your cascade system)
   useCascadeInView();
-
-  // ✅ desktop snap effect (unchanged)
-  useEffect(() => {
-    const el = desktopRef.current;
-    if (!el) return;
-
-    const sections = Array.from(el.querySelectorAll("[data-snap]"));
-    if (sections.length === 0) return;
-
-    let isAnimating = false;
-    let lastWheelTime = 0;
-
-    const easeInOutCubic = (t) =>
-      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-    const animateScrollTo = (targetTop, duration = 950) => {
-      const startTop = el.scrollTop;
-      const diff = targetTop - startTop;
-      if (Math.abs(diff) < 2) return;
-
-      isAnimating = true;
-      const start = performance.now();
-
-      const step = (now) => {
-        const t = Math.min(1, (now - start) / duration);
-        const eased = easeInOutCubic(t);
-        el.scrollTop = startTop + diff * eased;
-
-        if (t < 1) requestAnimationFrame(step);
-        else isAnimating = false;
-      };
-
-      requestAnimationFrame(step);
-    };
-
-    const getClosestSectionIndex = () => {
-      const y = el.scrollTop;
-      let best = 0;
-      let bestDist = Infinity;
-
-      for (let i = 0; i < sections.length; i++) {
-        const top = sections[i].offsetTop;
-        const dist = Math.abs(top - y);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = i;
-        }
-      }
-      return best;
-    };
-
-    const goTo = (dir) => {
-      const i = getClosestSectionIndex();
-      const next = Math.max(0, Math.min(sections.length - 1, i + dir));
-      animateScrollTo(sections[next].offsetTop, 950);
-    };
-
-    const onWheel = (e) => {
-      if (isAnimating) {
-        e.preventDefault();
-        return;
-      }
-
-      const now = Date.now();
-      const delta = e.deltaY;
-
-      if (Math.abs(delta) < 18) return;
-
-      if (now - lastWheelTime < 850) {
-        e.preventDefault();
-        return;
-      }
-
-      lastWheelTime = now;
-      e.preventDefault();
-
-      goTo(delta > 0 ? 1 : -1);
-    };
-
-    const onKeyDown = (e) => {
-      if (isAnimating) return;
-
-      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
-        e.preventDefault();
-        goTo(1);
-      }
-      if (e.key === "ArrowUp" || e.key === "PageUp") {
-        e.preventDefault();
-        goTo(-1);
-      }
-      if (e.key === "Home") {
-        e.preventDefault();
-        animateScrollTo(0, 950);
-      }
-      if (e.key === "End") {
-        e.preventDefault();
-        const last = sections[sections.length - 1];
-        animateScrollTo(last.offsetTop, 950);
-      }
-    };
-
-    el.setAttribute("tabindex", "0");
-    el.addEventListener("wheel", onWheel, { passive: false });
-    el.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      el.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
 
   return (
     // ... your JSX continues
 
     <main className="min-h-screen bg-[color:var(--wandr-wilfred)] text-white overflow-hidden md:overflow-visible">
 
-     {/* =========================
-    MOBILE VERSION (synced to desktop refs)
+{/* =========================
+    MOBILE (no snapping, NO gradient)
     ========================= */}
 <div
   ref={mobileRef}
-  className="md:hidden h-[100svh] overflow-y-auto snap-y snap-proximity snap-ease [-webkit-overflow-scrolling:touch]"
+  className="md:hidden overflow-y-auto [-webkit-overflow-scrolling:touch]"
 >
-
-  {/* 1 — HERO (mobile + RollingWords) */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
-
+  {/* 1 — HERO */}
+  <section className="bg-[color:var(--wandr-wilfred)] px-6 py-12">
     <div
       data-cascade
       style={{
-        "--cascade-y": "14px",
-        "--cascade-dur": "900ms",
-        "--cascade-stagger": "350ms",
+        "--cascade-y": "12px",
+        "--cascade-dur": "850ms",
+        "--cascade-stagger": "220ms",
       }}
-      className="flex flex-col items-center text-center gap-8"
+      className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
-      <div data-cascade-item className="flex flex-col items-center" style={{ "--i": 0 }}>
+      <div data-cascade-item style={{ "--i": 0 }}>
         <Image
           src="/wandr-logo-light-1.svg"
           alt="WandR"
           width={320}
           height={110}
           priority
-          className="h-auto w-[350px]"
+          className="h-auto w-[280px]"
         />
       </div>
 
       <h1
         data-cascade-item
-        className="text-[22px] leading-tight font-extrabold tracking-tight text-white/90 whitespace-nowrap"
+        className="text-[22px] leading-tight font-extrabold tracking-tight text-white/90"
         style={{ "--i": 1 }}
       >
         We help you{" "}
@@ -357,17 +245,16 @@ export default function HomePage() {
     </div>
   </section>
 
-  {/* 2 — ADMIN (mail.webm) */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
-
+  {/* 2 — ADMIN */}
+  <section className="bg-[color:var(--wandr-wilfred)] px-6 py-12">
     <div
       data-cascade
       style={{
-        "--cascade-y": "14px",
-        "--cascade-dur": "900ms",
-        "--cascade-stagger": "350ms",
+        "--cascade-y": "12px",
+        "--cascade-dur": "850ms",
+        "--cascade-stagger": "220ms",
       }}
-      className="flex flex-col items-center text-center gap-10"
+      className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
       <h2
         data-cascade-item
@@ -378,10 +265,10 @@ export default function HomePage() {
         <span className="text-wandr-rose"> except us.</span>
       </h2>
 
-      <div data-cascade-item style={{ "--i": 1 }}>
+      <div data-cascade-item style={{ "--i": 1 }} className="w-full flex justify-center">
         <VideoLoop
           src="/mail.webm"
-          className="w-[350px] h-auto"
+          className="w-full max-w-[420px] h-auto"
           rounded="rounded-3xl"
           contain
         />
@@ -389,7 +276,7 @@ export default function HomePage() {
 
       <p
         data-cascade-item
-        className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[26ch]"
+        className="text-[18px] leading-snug font-extrabold tracking-tight max-w-[30ch]"
         style={{ "--i": 2 }}
       >
         At <span className="text-wandr-rose">WandR</span>, we help you stay focused
@@ -398,17 +285,16 @@ export default function HomePage() {
     </div>
   </section>
 
-  {/* 3 — JOURNEY (car-swerve.webm) */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
-
+  {/* 3 — JOURNEY */}
+  <section className="bg-[color:var(--wandr-wilfred)] px-6 py-12">
     <div
       data-cascade
       style={{
-        "--cascade-y": "14px",
-        "--cascade-dur": "900ms",
-        "--cascade-stagger": "350ms",
+        "--cascade-y": "12px",
+        "--cascade-dur": "850ms",
+        "--cascade-stagger": "220ms",
       }}
-      className="flex flex-col items-center text-center gap-8"
+      className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
       <h2
         data-cascade-item
@@ -418,10 +304,10 @@ export default function HomePage() {
         Every journey is different
       </h2>
 
-      <div data-cascade-item style={{ "--i": 1 }}>
+      <div data-cascade-item style={{ "--i": 1 }} className="w-full flex justify-center">
         <VideoLoop
           src="/car-swerve.webm"
-          className="w-full max-w-[520px] h-[240px]"
+          className="w-full max-w-[520px] h-auto"
           rounded="rounded-3xl"
           contain
         />
@@ -429,7 +315,7 @@ export default function HomePage() {
 
       <p
         data-cascade-item
-        className="text-[22px] leading-snug font-extrabold tracking-tight max-w-[45ch]"
+        className="text-[18px] leading-snug font-extrabold tracking-tight max-w-[36ch]"
         style={{ "--i": 2 }}
       >
         we’re here to make yours
@@ -439,7 +325,7 @@ export default function HomePage() {
 
       <p
         data-cascade-item
-        className="text-sm leading-relaxed text-white/80 max-w-[35ch]"
+        className="text-sm leading-relaxed text-white/80 max-w-[40ch]"
         style={{ "--i": 3 }}
       >
         At <span className="font-semibold">WandR</span>, we turn structure into an
@@ -449,128 +335,114 @@ export default function HomePage() {
     </div>
   </section>
 
-  {/* 4 — SERVICES (admin + timeline) */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-wilfred-gradient">
-
-    <div className="flex flex-col gap-14">
-      <article className="flex flex-col items-center text-center">
-        <div
-          data-cascade
-          style={{
-            "--cascade-y": "12px",
-            "--cascade-dur": "850ms",
-            "--cascade-stagger": "110ms",
-          }}
-          className="flex flex-col items-center text-center"
-        >
-          <div data-cascade-item style={{ "--i": 0 }}>
-            <VideoLoop
-              src="/admin.webm"
-              className="w-[320px] h-auto mb-6"
-              rounded="rounded-none"
-              contain
-            />
-          </div>
-
-          <h3
-            data-cascade-item
-            className="text-[22px] font-extrabold tracking-tight mb-3"
-            style={{ "--i": 1 }}
-          >
-            Virtual <span className="text-wandr-rose">Assistance</span>
-          </h3>
-
-          <p
-            data-cascade-item
-            className="text-sm text-white/80 leading-relaxed max-w-[38ch]"
-            style={{ "--i": 2 }}
-          >
-            Inbox, admin, scheduling, documents, follow-ups — we handle the busywork
-            so you can stay in flow.
-          </p>
+  {/* 4 — SERVICES */}
+  <section className="bg-[color:var(--wandr-wilfred)] px-6 py-12">
+    <div className="mx-auto max-w-[560px] flex flex-col gap-10">
+      <article
+        data-cascade
+        style={{
+          "--cascade-y": "12px",
+          "--cascade-dur": "850ms",
+          "--cascade-stagger": "140ms",
+        }}
+        className="flex flex-col items-center text-center"
+      >
+        <div data-cascade-item style={{ "--i": 0 }} className="w-full flex justify-center">
+          <VideoLoop
+            src="/admin.webm"
+            className="w-full max-w-[360px] h-auto"
+            rounded="rounded-none"
+            contain
+          />
         </div>
+
+        <h3
+          data-cascade-item
+          className="mt-4 text-[22px] font-extrabold tracking-tight"
+          style={{ "--i": 1 }}
+        >
+          Virtual <span className="text-wandr-rose">Assistance</span>
+        </h3>
+
+        <p
+          data-cascade-item
+          className="mt-2 text-sm text-white/80 leading-relaxed max-w-[44ch]"
+          style={{ "--i": 2 }}
+        >
+          Inbox, admin, scheduling, documents, follow-ups — we handle the busywork
+          so you can stay in flow.
+        </p>
       </article>
 
-      <div className="h-px w-full bg-white/25" />
+      <div className="h-px w-full bg-white/15" />
 
-      <article className="flex flex-col items-center text-center">
-        <div
-          data-cascade
-          style={{
-            "--cascade-y": "12px",
-            "--cascade-dur": "850ms",
-            "--cascade-stagger": "110ms",
-          }}
-          className="flex flex-col items-center text-center"
-        >
-          <div data-cascade-item style={{ "--i": 0 }}>
-            <VideoLoop
-              src="/timeline.webm"
-              className="w-[340px] h-auto mb-6"
-              rounded="rounded-none"
-              contain
-            />
-          </div>
-
-          <h3
-            data-cascade-item
-            className="text-[22px] font-extrabold tracking-tight mb-3"
-            style={{ "--i": 1 }}
-          >
-            Project <span className="text-wandr-rose">Management</span>
-          </h3>
-
-          <p
-            data-cascade-item
-            className="text-sm text-white/80 leading-relaxed max-w-[38ch]"
-            style={{ "--i": 2 }}
-          >
-            Timelines, coordination, client comms, deliverables — we keep projects
-            organised and moving forward.
-          </p>
+      <article
+        data-cascade
+        style={{
+          "--cascade-y": "12px",
+          "--cascade-dur": "850ms",
+          "--cascade-stagger": "140ms",
+        }}
+        className="flex flex-col items-center text-center"
+      >
+        <div data-cascade-item style={{ "--i": 0 }} className="w-full flex justify-center">
+          <VideoLoop
+            src="/timeline.webm"
+            className="w-full max-w-[400px] h-auto"
+            rounded="rounded-none"
+            contain
+          />
         </div>
+
+        <h3
+          data-cascade-item
+          className="mt-4 text-[22px] font-extrabold tracking-tight"
+          style={{ "--i": 1 }}
+        >
+          Project <span className="text-wandr-rose">Management</span>
+        </h3>
+
+        <p
+          data-cascade-item
+          className="mt-2 text-sm text-white/80 leading-relaxed max-w-[44ch]"
+          style={{ "--i": 2 }}
+        >
+          Timelines, coordination, client comms, deliverables — we keep projects
+          organised and moving forward.
+        </p>
       </article>
     </div>
   </section>
 
-  {/* 5 — EXPERIENCE (car-road.webm) */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-joyce">
-
+  {/* 5 — EXPERIENCE */}
+  <section className="bg-wandr-joyce px-6 py-12">
     <div
       data-cascade
       style={{
-        "--cascade-y": "14px",
+        "--cascade-y": "12px",
         "--cascade-dur": "850ms",
-        "--cascade-stagger": "110ms",
+        "--cascade-stagger": "180ms",
       }}
-      className="flex flex-col items-center text-center gap-6"
+      className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
-      <div
-        data-cascade-item
-        className="text-[64px] font-black leading-none tracking-tight"
-        style={{ "--i": 0 }}
-      >
+      <div data-cascade-item style={{ "--i": 0 }} className="text-[54px] font-black leading-none tracking-tight">
         15+
-        <span className="block mt-2 text-[64px] font-semibold opacity-90">
+        <span className="block mt-2 text-[48px] font-semibold opacity-90">
           Years
         </span>
       </div>
 
-      <p
-        data-cascade-item
-        className="text-sm leading-relaxed text-white/80 max-w-[35ch]"
-        style={{ "--i": 1 }}
-      >
+      <p data-cascade-item className="text-sm leading-relaxed text-white/80 max-w-[44ch]" style={{ "--i": 1 }}>
         After more than <span className="font-semibold text-white">15 years</span>{" "}
         working for <span className="font-semibold text-white">FMCG</span> and{" "}
         <span className="font-semibold text-white">creative advertising agencies</span>,
         we understand the rhythm of projects and what drives them forward.
       </p>
 
-      <div data-cascade-item style={{ "--i": 2 }}>
+      <div data-cascade-item style={{ "--i": 2 }} className="w-full flex justify-center">
         <VideoLoop
           src="/car-road.webm"
-          className="w-full max-w-[450px] h-auto"
+          className="w-full max-w-[480px] h-auto"
           rounded="rounded-xl"
           contain
         />
@@ -578,21 +450,20 @@ export default function HomePage() {
     </div>
   </section>
 
-  {/* 6 — PATH (flying-car.webm) */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always bg-wandr-rose">
-
+  {/* 6 — PATH */}
+  <section className="bg-wandr-rose px-6 py-12">
     <div
       data-cascade
       style={{
         "--cascade-y": "12px",
         "--cascade-dur": "850ms",
-        "--cascade-stagger": "110ms",
+        "--cascade-stagger": "180ms",
       }}
-      className="flex flex-col items-center text-center"
+      className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
       <h2
         data-cascade-item
-        className="font-extrabold tracking-normal leading-[1.1] text-[22px] text-center mx-auto max-w-[30ch] text-[color:var(--wandr-joyce)]"
+        className="font-extrabold leading-[1.1] text-[22px] max-w-[32ch] text-[color:var(--wandr-joyce)]"
         style={{ "--i": 0 }}
       >
         Every path is unique — unpredictable
@@ -600,14 +471,10 @@ export default function HomePage() {
         and always evolving
       </h2>
 
-      <div
-        data-cascade-item
-        className="mt-10 flex items-center justify-center"
-        style={{ "--i": 1 }}
-      >
+      <div data-cascade-item style={{ "--i": 1 }} className="w-full flex justify-center">
         <VideoLoop
           src="/flying-car.webm"
-          className="w-full max-w-[560px] h-[240px]"
+          className="w-full max-w-[520px] h-auto"
           rounded="rounded-3xl"
           contain
         />
@@ -615,32 +482,27 @@ export default function HomePage() {
 
       <p
         data-cascade-item
-        className="mt-10 font-extrabold tracking-normal leading-tight text-[22px] text-center max-w-[30ch] mx-auto text-[color:var(--wandr-joyce)]"
+        className="font-extrabold leading-tight text-[18px] max-w-[34ch] text-[color:var(--wandr-joyce)]"
         style={{ "--i": 2 }}
       >
-        Our role is to help you find clarity in the clutter and to bring structure
+        Our role is to help you find clarity in the clutter and bring structure
         to wherever your creativity wanders.
       </p>
     </div>
   </section>
 
   {/* 7 — CONTACT */}
-  <section className="relative min-h-[100svh] px-6 py-16 flex flex-col justify-center snap-center snap-always">
-
+  <section className="bg-[color:var(--wandr-wilfred)] px-6 py-12">
     <div
       data-cascade
       style={{
         "--cascade-y": "12px",
         "--cascade-dur": "850ms",
-        "--cascade-stagger": "110ms",
+        "--cascade-stagger": "180ms",
       }}
-      className="mx-auto max-w-6xl flex flex-col items-center text-center gap-6"
+      className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
-      <p
-        data-cascade-item
-        className="max-w-[52ch] text-[15px] text-white/75"
-        style={{ "--i": 0 }}
-      >
+      <p data-cascade-item className="max-w-[46ch] text-[14px] text-white/75" style={{ "--i": 0 }}>
         If you’re ready to simplify your workload and protect your focus, reach
         out and let’s build a system that supports you.
       </p>
@@ -661,85 +523,111 @@ export default function HomePage() {
           width={320}
           height={110}
           priority
-          className="h-auto w-[350px]"
+          className="h-auto w-[280px]"
         />
       </div>
     </div>
-
-      </section>
+  </section>
 </div>
 {/* ===== END MOBILE ===== */}
 
 
-      {/* =========================
-          DESKTOP (custom snapping)
-          ========================= */}
-      <div ref={desktopRef} className="hidden md:block h-screen overflow-y-auto">
-        {/* 1 — HERO */}
-        <section
-          data-snap
-          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
-        >
-          <div className="mx-auto max-w-6xl w-full flex items-center justify-between gap-10">
-            <div className="flex flex-col justify-center">
-              <Image
-                src="/wandr-logo-light-1.svg"
-                alt="WandR"
-                width={480}
-                height={160}
-                priority
-                className="h-auto w-[420px] max-w-full"
-              />
-            </div>
 
-            <h1 className="text-right text-[34px] leading-tight font-extrabold tracking-normal text-white whitespace-nowrap">
-              We help you{" "}
-              <RollingWords
-                words={["simplify,", "optimise,", "organise."]}
-                intervalMs={900} // ~0.9s per word
-                durationMs={260} // quick slide
-                className="text-wandr-rose"
-                slotClassName="justify-end"
-              />
-            </h1>
-          </div>
-        </section>
+{/* =========================
+    DESKTOP (custom snapping)
+    ========================= */}
+<div ref={desktopRef} className="hidden md:block h-screen overflow-y-auto">
+  {/* 1 — HERO */}
+  <section data-snap className="h-[100svh] flex items-center bg-[color:var(--wandr-wilfred)]">
+    <div className="mx-auto max-w-6xl w-full px-14 lg:px-20 py-12 flex items-center justify-between gap-6">
+      <Image
+        src="/wandr-logo-light-1.svg"
+        alt="WandR"
+        width={480}
+        height={160}
+        priority
+        className="h-auto w-[420px] max-w-full"
+      />
 
-        {/* 2 — ADMIN (mail.webm) */}
-        <section
-          data-snap
-          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
-        >
-          <div className="mx-auto max-w-6xl w-full grid gap-10 grid-cols-[1.2fr_1fr_1fr] items-center">
-            <h2 className="text-[34px] leading-tight font-extrabold tracking-normal">
-              No one starts a business dreaming of admin —
-              <span className="text-wandr-rose"> except us.</span>
-            </h2>
+      <h1 className="text-right text-[34px] leading-tight font-extrabold tracking-normal text-white whitespace-nowrap">
+        We help you{" "}
+        <RollingWords
+          words={["simplify,", "optimise,", "organise."]}
+          intervalMs={900}
+          durationMs={260}
+          className="text-wandr-rose"
+          slotClassName="justify-end"
+        />
+      </h1>
+    </div>
+  </section>
 
-            {/* OFFSET LEFT: use negative translate-x */}
-            <div className="w-[520px] h-auto -translate-x-[80px]">
+  {/* 2+3 — ADMIN + JOURNEY (COMBINED 2x2, FULL-BLEED ROW BACKGROUNDS) */}
+<section data-snap className="h-[100svh]">
+  <div className="h-full grid grid-rows-2">
+    {/* Row 1 (Wilfred) */}
+    <div className="bg-[color:var(--wandr-wilfred)]">
+      <div className="h-full flex items-center">
+        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
+          <div className="grid grid-cols-2 items-center gap-12">
+            {/* Left — Mail anim */}
+            <div className="flex items-center justify-center">
               <VideoLoop
                 src="/mail.webm"
-                className="h-auto w-[520px] max-w-full"
+                className="w-full max-w-[520px] h-auto"
                 rounded="rounded-3xl"
                 contain
               />
             </div>
 
-            <p className="text-[34px] leading-tight font-extrabold tracking-normal">
-              At <span className="text-wandr-rose">WandR</span>, we help you stay
-              focused on your craft — not your inbox.
-            </p>
-          </div>
-        </section>
+            {/* Right — Admin copy */}
+            <div className="flex items-center justify-start">
+              <div className="max-w-[34ch] text-left">
+                <h2 className="text-[34px] leading-tight font-extrabold tracking-normal text-white">
+                  No one starts a business dreaming of admin —
+                  <span className="text-wandr-rose"> except us.</span>
+                </h2>
 
-        {/* 3 — JOURNEY (flying-car.webm) */}
-        <section
-          data-snap
-          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
-        >
-          <div className="mx-auto max-w-6xl w-full grid grid-cols-[2fr_1fr] gap-12 items-center">
-            <div className="flex justify-center">
+                <p className="mt-6 text-[18px] leading-relaxed text-white/85">
+                  At <span className="font-semibold text-white">WandR</span>, we help you stay
+                  focused on your craft — not your inbox.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Row 2 (Dark teal) */}
+    <div className="bg-[#163f3f]">
+      <div className="h-full flex items-center">
+        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
+          <div className="grid grid-cols-2 items-center gap-12">
+            {/* Left — Journey copy */}
+            <div className="flex items-center justify-center text-center">
+              <div className="max-w-[44ch]">
+                <h2 className="text-[40px] font-extrabold tracking-[-0.02em] leading-tight text-white">
+                  Every journey
+                  <br />
+                  is <span className="text-wandr-rose">different</span>
+                </h2>
+
+                <p className="mt-6 text-[22px] font-extrabold tracking-normal text-white">
+                  we’re here to make yours
+                  <br />
+                  easier to navigate.
+                </p>
+
+                <p className="mt-6 text-sm leading-relaxed text-white/80">
+                  At <span className="font-semibold text-white">WandR</span>, we turn structure into an art form,
+                  giving you the space to focus on what you do best while we take care of the rest.
+                </p>
+              </div>
+            </div>
+
+            {/* Right — Car-swerve anim */}
+            <div className="flex items-center justify-center">
               <VideoLoop
                 src="/car-swerve.webm"
                 className="w-full max-w-[780px] h-auto"
@@ -747,177 +635,148 @@ export default function HomePage() {
                 contain
               />
             </div>
-
-            <div>
-              <h2 className="text-[40px] font-extrabold tracking-[-0.02em] leading-tight text-white">
-                Every journey is different
-              </h2>
-
-              <p className="mt-6 text-[22px] font-extrabold tracking-normal text-white">
-                we’re here to make yours
-                <br />
-                easier to navigate.
-              </p>
-
-              <p className="mt-6 text-sm leading-relaxed text-white/80 max-w-[46ch]">
-                At <span className="font-semibold">WandR</span>, we turn structure
-                into an art form, giving you the space to focus on what you do
-                best while we take care of the rest.
-              </p>
-            </div>
           </div>
-        </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-        {/* 4 — SERVICES (admin + timeline) */}
-        <section
-          data-snap
-          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
-        >
-          <div className="mx-auto max-w-6xl w-full">
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-16 items-center">
-              <div className="flex flex-col items-center text-center">
+
+{/* 4+5 — SERVICES + EXPERIENCE (COMBINED 2x2, FULL-BLEED ROW BACKGROUNDS) */}
+<section data-snap className="h-[100svh]">
+  <div className="h-full grid grid-rows-2">
+    {/* Row 1 (Wilfred) */}
+    <div className="bg-[color:var(--wandr-wilfred)]">
+      <div className="h-full flex items-center">
+        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
+          <div className="grid grid-cols-2 items-center gap-12">
+            {/* Left — Virtual Assistance */}
+            <div className="flex items-center justify-center text-center">
+              <div className="max-w-[40ch]">
                 <VideoLoop
                   src="/admin.webm"
-                  className="w-[380px] h-auto mb-6"
+                  className="w-[380px] h-auto mx-auto mb-6"
                   rounded="rounded-none"
                   contain
                 />
-                <h3 className="text-[34px] font-extrabold tracking-tight mb-3">
+                <h3 className="text-[34px] font-extrabold tracking-tight mb-3 text-white">
                   Virtual <span className="text-wandr-rose">Assistance</span>
                 </h3>
-                <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
-                  Inbox, admin, scheduling, documents, follow-ups — we handle
-                  the busywork so you can stay in flow.
+                <p className="text-sm text-white/80 leading-relaxed">
+                  Inbox, admin, scheduling, documents, follow-ups — we handle the busywork so you can stay in flow.
                 </p>
               </div>
+            </div>
 
-              <div className="h-[260px] w-px bg-white/30" />
-
-              <div className="flex flex-col items-center text-center">
+            {/* Right — Project Management */}
+            <div className="flex items-center justify-center text-center">
+              <div className="max-w-[40ch]">
                 <VideoLoop
                   src="/timeline.webm"
-                  className="w-[420px] h-auto mb-6"
+                  className="w-[420px] h-auto mx-auto mb-6"
                   rounded="rounded-none"
                   contain
                 />
-                <h3 className="text-[34px] font-extrabold tracking-tight mb-3">
+                <h3 className="text-[34px] font-extrabold tracking-tight mb-3 text-white">
                   Project <span className="text-wandr-rose">Management</span>
                 </h3>
-                <p className="text-sm text-white/80 leading-relaxed max-w-[38ch]">
-                  Timelines, coordination, client comms, deliverables — we keep
-                  projects organised and moving forward.
+                <p className="text-sm text-white/80 leading-relaxed">
+                  Timelines, coordination, client comms, deliverables — we keep projects organised and moving forward.
                 </p>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </div>
+    </div>
 
-        {/* 5 — EXPERIENCE (car-swerve.webm) */}
-        <section
-          data-snap
-  className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center bg-[color:var(--wandr-joyce)]"
->
-          <div className="mx-auto max-w-6xl w-full flex flex-col justify-center gap-10">
-            {/* top: text (slightly higher to balance gaps) */}
-            <div className="grid gap-10 grid-cols-[.6fr_1.4fr] items-center -translate-y-[70px]">
-              <div className="flex flex-col items-end text-right">
-                <div className="text-[58px] font-black leading-none tracking-tight">
-                  15+
+    {/* Row 2 (Dark teal) */}
+    <div className="bg-[#163f3f]">
+      <div className="h-full flex items-center">
+        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
+          <div className="grid grid-cols-2 items-center gap-12">
+            {/* Left — 15+ Years */}
+            <div className="flex items-center">
+              <div className="max-w-[56ch]">
+                <div className="text-[58px] font-black leading-none tracking-tight text-white">
+                  15+ <span className="font-semibold text-white/90">Years</span>
                 </div>
-                <div className="mt-2 text-[58px] font-semibold text-white/90">
-                  Years
-                </div>
-              </div>
 
-              <p className="text-[16px] leading-[2.05] text-white/85 max-w-[62ch]">
-                After more than{" "}
-                <span className="font-semibold text-white">15 years</span>{" "}
-                working for{" "}
-                <span className="font-semibold text-white">FMCG</span> and{" "}
-                <span className="font-semibold text-white">
-                  creative advertising agencies
-                </span>
-                , we understand the rhythm of projects and what drives them
-                forward: the long hours, shifting priorities, and constant
-                movement between inspiration and delivery.
-              </p>
-            </div>
-
-            {/* bottom: road bar + car */}
-            <div className="relative h-[90px] w-full">
-              <div className="absolute right-40 top-1/2 -translate-y-[50%]">
-                <VideoLoop
-                  src="/car-road.webm"
-                  className="w-[850px] h-auto"
-                  rounded="rounded-xl"
-                  contain
-                />
+                <p className="mt-6 text-[16px] leading-[2.0] text-white/85">
+                  After more than <span className="font-semibold text-white">15 years</span> working for{" "}
+                  <span className="font-semibold text-white">FMCG</span> and{" "}
+                  <span className="font-semibold text-white">creative advertising agencies</span>, we understand the rhythm
+                  of projects and what drives them forward: the long hours, shifting priorities, and constant movement between
+                  inspiration and delivery.
+                </p>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* 6 — PATH (parrot-car.webm) */}
-        <section
-          data-snap
-          className="md:min-h-[850px] lg:min-h-[900px] bg-[color:var(--wandr-rose)] px-6 flex items-center"
-        >
-          <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-12">
-            <h2 className="font-extrabold tracking-normal leading-[1.05] text-[34px] text-center mx-auto text-[color:var(--wandr-joyce)]">
-              <span className="whitespace-nowrap">
-                Every path is unique — unpredictable
-              </span>
-              <br />
-              <span className="whitespace-nowrap">and always evolving</span>
-            </h2>
-
-            <div className="w-full flex items-center justify-center">
+            {/* Right — Car road anim */}
+            <div className="flex items-center justify-center">
               <VideoLoop
-                src="/flying-car.webm"
-                className="w-[720px] h-[360px]"
-                rounded="rounded-3xl"
+                src="/car-road.webm"
+                className="w-full max-w-[850px] h-auto"
+                rounded="rounded-xl"
                 contain
               />
             </div>
-
-            <p className="font-extrabold tracking-normal leading-[1.15] text-[34px] max-w-[36ch] text-[color:var(--wandr-joyce)]">
-              Our role is to help you find clarity in the clutter and to bring
-              structure to wherever your creativity wanders.
-            </p>
           </div>
-        </section>
-
-        {/* 7 — CONTACT */}
-        <section
-          data-snap
-          className="md:min-h-[850px] lg:min-h-[900px] px-6 flex items-center"
-        >
-          <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-6">
-            <p className="max-w-[52ch] text-xs text-white/75">
-              If you’re ready to simplify your workload and protect your focus,
-              reach out and let’s build a system that supports you.
-            </p>
-
-            <a
-              href="mailto:hello@wandr.com"
-              className="w-full max-w-[360px] bg-white text-black font-extrabold tracking-wide py-4 rounded-xl"
-            >
-              CONTACT US
-            </a>
-
-            <Image
-          src="/wandr-logo-light-1.svg"
-          alt="WandR"
-          width={320}
-          height={110}
-          priority
-          className="h-auto w-[350px]"
-        />
-          </div>
-
-      
-        </section>
+        </div>
       </div>
+    </div>
+  </div>
+</section>
+
+
+  {/* 6 — PATH */}
+  <section
+    data-snap
+    className="h-[100svh] bg-[color:var(--wandr-rose)] px-6 flex items-center"
+  >
+    <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-12">
+      <h2 className="text-[34px] font-extrabold text-[color:var(--wandr-joyce)]">
+        Every path is unique — unpredictable
+        <br />
+        and always evolving
+      </h2>
+
+      <VideoLoop src="/flying-car.webm" className="w-[720px] h-[360px]" />
+
+      <p className="text-[34px] font-extrabold max-w-[36ch] text-[color:var(--wandr-joyce)]">
+        Our role is to bring clarity to wherever your creativity wanders.
+      </p>
+    </div>
+  </section>
+
+  {/* 7 — CONTACT */}
+  <section data-snap className="h-[100svh] px-6 flex items-center bg-[color:var(--wandr-wilfred)]">
+    <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-6">
+      <p className="max-w-[52ch] text-xs text-white/75">
+        If you’re ready to simplify your workload, let’s build a system that
+        supports you.
+      </p>
+
+      <a
+        href="mailto:hello@wandr.com"
+        className="w-full max-w-[360px] bg-white text-black font-extrabold py-4 rounded-xl"
+      >
+        CONTACT US
+      </a>
+
+      <Image
+        src="/wandr-logo-light-1.svg"
+        alt="WandR"
+        width={320}
+        height={110}
+        className="w-[350px] h-auto"
+      />
+    </div>
+  </section>
+</div>
+
+
     </main>
   );
 }
