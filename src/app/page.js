@@ -4,31 +4,63 @@ import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCascadeInView } from "@/hooks/useCascadeInView";
 
-function VideoLoop({ src, className = "", contain = true, rounded = "rounded-3xl" }) {
-  // Handle src like "/mail.webm" or "/mail.mp4" (and survive querystrings)
-  const cleanSrc = src.split("?")[0];
-  const base = cleanSrc.replace(/\.(webm|mp4)$/i, "");
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const iOSDevice = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS =
+    ua.includes("Mac") &&
+    typeof document !== "undefined" &&
+    "ontouchend" in document;
+  return iOSDevice || iPadOS;
+}
 
+function VideoLoop({ src, className = "", contain = true, rounded = "rounded-3xl" }) {
+  const cleanSrc = src.split("?")[0];
+  const base = cleanSrc.replace(/\.(webm|mp4|gif)$/i, "");
+
+  const [useGif, setUseGif] = useState(false);
+
+  useEffect(() => {
+    setUseGif(isIOS());
+  }, []);
+
+  const commonClass =
+    `${className} ${rounded} ${contain ? "object-contain" : "object-cover"} block`;
+
+  // ✅ iOS → GIF
+  if (useGif) {
+    return (
+      <img
+        src={`${base}.gif`}
+        alt=""
+        className={commonClass}
+        loading="eager"
+        decoding="async"
+      />
+    );
+  }
+
+  // ✅ Everyone else → WebM (with image fallback)
   return (
     <video
       autoPlay
       loop
       muted
       playsInline
-      preload="auto"              // ✅ better than metadata for iOS autoplay/buffering
+      preload="auto"
       controls={false}
-      disablePictureInPicture     // ✅ reduces iOS weirdness
-      disableRemotePlayback       // ✅ reduces iOS weirdness
-      className={`${className} ${rounded} ${contain ? "object-contain" : "object-cover"}`}
+      disablePictureInPicture
+      disableRemotePlayback
+      className={commonClass}
     >
-      {/* iOS / Safari (HEVC hvc1). Put FIRST so iOS picks it. */}
-      <source src={`${base}.mp4`} type='video/mp4; codecs="hvc1"' />
-
-      {/* Everyone else */}
       <source src={`${base}.webm`} type="video/webm" />
+      {/* last-resort fallback */}
+      <img src={`${base}.gif`} alt="" />
     </video>
   );
 }
+
 
 
 function SectionNumber({ n, position = "top-right" }) {
@@ -883,7 +915,7 @@ export default function HomePage() {
         />
           </div>
 
-          <div className="absolute right-8 bottom-6 text-6xl opacity-25">🦜</div>
+      
         </section>
       </div>
     </main>
