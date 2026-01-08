@@ -5,20 +5,26 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCascadeInView } from "@/hooks/useCascadeInView";
 
 function VideoLoop({ src, className = "", contain = true, rounded = "rounded-3xl" }) {
-  const base = src.replace(/\.(webm|mp4)$/i, "");
+  // Handle src like "/mail.webm" or "/mail.mp4" (and survive querystrings)
+  const cleanSrc = src.split("?")[0];
+  const base = cleanSrc.replace(/\.(webm|mp4)$/i, "");
+
   return (
     <video
       autoPlay
       loop
       muted
       playsInline
-      preload="metadata"
+      preload="auto"              // ✅ better than metadata for iOS autoplay/buffering
+      controls={false}
+      disablePictureInPicture     // ✅ reduces iOS weirdness
+      disableRemotePlayback       // ✅ reduces iOS weirdness
       className={`${className} ${rounded} ${contain ? "object-contain" : "object-cover"}`}
     >
-      {/* iOS/Safari-friendly alpha */}
+      {/* iOS / Safari (HEVC hvc1). Put FIRST so iOS picks it. */}
       <source src={`${base}.mp4`} type='video/mp4; codecs="hvc1"' />
 
-      {/* everyone else */}
+      {/* Everyone else */}
       <source src={`${base}.webm`} type="video/webm" />
     </video>
   );
