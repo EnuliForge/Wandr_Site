@@ -82,6 +82,10 @@ function SectionNumber({ n, position = "top-right" }) {
 
 /**
  * RollingWords (no shift + no bounce + baseline-safe)
+ * Desktop + Mobile fix:
+ * - lock width + height
+ * - re-measure on resize/orientation
+ * - re-measure after fonts load (mobile Safari often loads late)
  */
 function RollingWords({
   words,
@@ -93,9 +97,11 @@ function RollingWords({
   const [i, setI] = useState(0);
   const [phase, setPhase] = useState("idle");
   const [slotW, setSlotW] = useState(null);
+  const [slotH, setSlotH] = useState(null);
 
   const measurerRef = useRef(null);
   const timeoutRef = useRef(null);
+  const rafRef = useRef(null);
 
   const current = words[i];
   const nextIndex = (i + 1) % words.length;
@@ -103,17 +109,62 @@ function RollingWords({
 
   const wordsKey = words.join("|");
 
-  useLayoutEffect(() => {
+  const measure = () => {
     if (!measurerRef.current) return;
-    const spans = measurerRef.current.querySelectorAll("[data-word]");
-    let max = 0;
-    spans.forEach((s) => {
-      const w = Math.ceil(s.getBoundingClientRect().width);
-      if (w > max) max = w;
+
+    // measure after layout has settled
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const spans = measurerRef.current.querySelectorAll("[data-word]");
+      let maxW = 0;
+      let maxH = 0;
+
+      spans.forEach((s) => {
+        const r = s.getBoundingClientRect();
+        const w = Math.ceil(r.width);
+        const h = Math.ceil(r.height);
+        if (w > maxW) maxW = w;
+        if (h > maxH) maxH = h;
+      });
+
+      setSlotW(maxW || null);
+      setSlotH(maxH || null);
     });
-    setSlotW(max);
+  };
+
+  // Initial + whenever words/classes change
+  useLayoutEffect(() => {
+    measure();
+    // Also do a second pass shortly after mount (mobile font/layout settle)
+    const t = setTimeout(measure, 50);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wordsKey, className]);
 
+  // Re-measure on resize/orientation (breakpoint changes)
+  useEffect(() => {
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+
+    // Re-measure once fonts are ready (prevents late font swap jump)
+    let cancelled = false;
+    if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) measure();
+      });
+    }
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordsKey, className]);
+
+  // Word cycling
   useEffect(() => {
     const tick = () => {
       setPhase("animating");
@@ -152,9 +203,12 @@ function RollingWords({
       {/* slot */}
       <span
         className={`relative inline-flex align-baseline overflow-hidden whitespace-nowrap ${slotClassName}`}
-        style={slotW ? { width: `${slotW}px` } : undefined}
+        style={{
+          ...(slotW ? { width: `${slotW}px` } : null),
+          ...(slotH ? { height: `${slotH}px` } : null),
+        }}
       >
-        {/* ghost establishes baseline/height */}
+        {/* ghost establishes stable height/baseline */}
         <span className={`relative inline-block ${className} opacity-0`}>
           {current}
         </span>
@@ -166,7 +220,10 @@ function RollingWords({
               ? "-translate-y-full opacity-0"
               : "translate-y-0 opacity-100"
           }`}
-          style={{ transitionDuration: `${durationMs}ms` }}
+          style={{
+            transitionDuration: `${durationMs}ms`,
+            willChange: "transform, opacity",
+          }}
         >
           <span className={className}>{current}</span>
         </span>
@@ -178,7 +235,10 @@ function RollingWords({
               ? "translate-y-0 opacity-100"
               : "translate-y-full opacity-0"
           }`}
-          style={{ transitionDuration: `${durationMs}ms` }}
+          style={{
+            transitionDuration: `${durationMs}ms`,
+            willChange: "transform, opacity",
+          }}
         >
           <span className={className}>{next}</span>
         </span>
@@ -186,6 +246,8 @@ function RollingWords({
     </>
   );
 }
+
+
 
 export default function HomePage() {
   const desktopRef = useRef(null);
@@ -369,8 +431,9 @@ export default function HomePage() {
           className="mt-2 text-sm text-white/80 leading-relaxed max-w-[44ch]"
           style={{ "--i": 2 }}
         >
-          Inbox, admin, scheduling, documents, follow-ups — we handle the busywork
-          so you can stay in flow.
+          Reliable, detail-driven administrative support to keep your business
+                  running smoothly — from inbox and calendar management to client
+                  communication and travel planning..
         </p>
       </article>
 
@@ -387,7 +450,7 @@ export default function HomePage() {
       >
         <div data-cascade-item style={{ "--i": 0 }} className="w-full flex justify-center">
           <VideoLoop
-            src="/timeline.webm"
+            src="/timeline-3.webm"
             className="w-full max-w-[400px] h-auto"
             rounded="rounded-none"
             contain
@@ -407,8 +470,7 @@ export default function HomePage() {
           className="mt-2 text-sm text-white/80 leading-relaxed max-w-[44ch]"
           style={{ "--i": 2 }}
         >
-          Timelines, coordination, client comms, deliverables — we keep projects
-          organised and moving forward.
+          Stay on track from concept to completion. We manage scheduling, key milestones, and communication with precision, ensuring your ideas never get lost in logistics.
         </p>
       </article>
     </div>
@@ -441,7 +503,7 @@ export default function HomePage() {
 
       <div data-cascade-item style={{ "--i": 2 }} className="w-full flex justify-center">
         <VideoLoop
-          src="/car-road.webm"
+          src="/car-road-2.webm"
           className="w-full max-w-[480px] h-auto"
           rounded="rounded-xl"
           contain
@@ -503,8 +565,7 @@ export default function HomePage() {
       className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
     >
       <p data-cascade-item className="max-w-[46ch] text-[14px] text-white/75" style={{ "--i": 0 }}>
-        If you’re ready to simplify your workload and protect your focus, reach
-        out and let’s build a system that supports you.
+        If you’re ready to simplify your refocus on what you love creating. WandR can help you find your rhythm and direction again.
       </p>
 
       <a
@@ -538,18 +599,21 @@ export default function HomePage() {
     ========================= */}
 <div ref={desktopRef} className="hidden md:block h-screen overflow-y-auto">
   {/* 1 — HERO */}
-  <section data-snap className="h-[100svh] flex items-center bg-[color:var(--wandr-wilfred)]">
-    <div className="mx-auto max-w-6xl w-full px-14 lg:px-20 py-12 flex items-center justify-between gap-6">
+  <section
+    data-snap
+    className="h-[100svh] max-[1440px]:h-[100dvh] max-[1440px]:min-h-[720px] flex items-center bg-[color:var(--wandr-wilfred)]"
+  >
+    <div className="mx-auto max-w-6xl w-full px-14 lg:px-20 py-12 flex items-center gap-10 max-[1440px]:gap-8">
       <Image
         src="/wandr-logo-light-1.svg"
         alt="WandR"
         width={480}
         height={160}
         priority
-        className="h-auto w-[420px] max-w-full"
+        className="h-auto w-[420px] max-w-full max-[1440px]:w-[360px]"
       />
 
-      <h1 className="text-right text-[34px] leading-tight font-extrabold tracking-normal text-white whitespace-nowrap">
+      <h1 className="ml-auto text-right text-[34px] max-[1440px]:text-[28px] leading-tight font-extrabold tracking-normal text-white whitespace-nowrap">
         We help you{" "}
         <RollingWords
           words={["simplify,", "optimise,", "organise."]}
@@ -562,200 +626,228 @@ export default function HomePage() {
     </div>
   </section>
 
+
   {/* 2+3 — ADMIN + JOURNEY (COMBINED 2x2, FULL-BLEED ROW BACKGROUNDS) */}
-<section data-snap className="h-[100svh]">
-  <div className="h-full grid grid-rows-2">
-    {/* Row 1 (Wilfred) */}
-    <div className="bg-[color:var(--wandr-wilfred)]">
-      <div className="h-full flex items-center">
-        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
-          <div className="grid grid-cols-2 items-center gap-12">
-            {/* Left — Mail anim */}
-            <div className="flex items-center justify-center">
-              <VideoLoop
-                src="/mail.webm"
-                className="w-full max-w-[520px] h-auto"
-                rounded="rounded-3xl"
-                contain
-              />
+  <section
+    data-snap
+    className="h-[100svh] max-[1440px]:h-[100dvh] max-[1440px]:min-h-[720px]"
+  >
+    <div className="h-full grid grid-rows-2">
+      {/* Row 1 (Wilfred) */}
+      <div className="bg-[color:var(--wandr-wilfred)]">
+        <div className="h-full flex items-center">
+          <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10 max-[1440px]:py-8">
+            <div className="grid grid-cols-2 items-center gap-12 max-[1440px]:gap-8">
+              {/* Left — Mail anim */}
+              <div className="flex items-center justify-center">
+                <VideoLoop
+                  src="/mail.webm"
+                  className="w-full max-w-[520px] max-[1440px]:max-w-[440px] h-auto"
+                  rounded="rounded-3xl"
+                  contain
+                />
+              </div>
+
+              {/* Right — Admin copy */}
+              <div className="flex items-center justify-start">
+                <div className="max-w-[34ch] text-left">
+                  <h2 className="text-[34px] max-[1440px]:text-[28px] leading-tight font-extrabold tracking-normal text-white">
+                    No one starts a business dreaming of admin —
+                    <span className="text-wandr-rose"> except us.</span>
+                  </h2>
+
+                  <p className="mt-6 max-[1440px]:mt-4 text-[18px] max-[1440px]:text-[16px] leading-relaxed text-white/85">
+                    At <span className="font-semibold text-white">WandR</span>, we help you stay
+                    focused on your craft — not your inbox.
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Right — Admin copy */}
-            <div className="flex items-center justify-start">
-              <div className="max-w-[34ch] text-left">
-                <h2 className="text-[34px] leading-tight font-extrabold tracking-normal text-white">
-                  No one starts a business dreaming of admin —
-                  <span className="text-wandr-rose"> except us.</span>
-                </h2>
+      {/* Row 2 (Dark teal) */}
+      <div className="bg-[#163f3f]">
+        <div className="h-full flex items-center">
+          <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10 max-[1440px]:py-8">
+            <div className="grid grid-cols-2 items-center gap-12 max-[1440px]:gap-8">
+              {/* Left — Journey copy */}
+              <div className="flex items-center justify-center text-right">
+                <div className="max-w-[38ch]">
+                  <h2 className="text-[40px] max-[1440px]:text-[32px] font-extrabold tracking-[-0.02em] leading-tight text-white">
+                    Every journey
+                    <br />
+                    is <span className="text-wandr-rose">different</span>
+                  </h2>
 
-                <p className="mt-6 text-[18px] leading-relaxed text-white/85">
-                  At <span className="font-semibold text-white">WandR</span>, we help you stay
-                  focused on your craft — not your inbox.
-                </p>
+                  <p className="mt-6 max-[1440px]:mt-4 text-[22px] max-[1440px]:text-[18px] font-extrabold tracking-normal text-white">
+                    we’re here to make yours
+                    <br />
+                    easier to navigate.
+                  </p>
+
+                  <p className="mt-6 max-[1440px]:mt-4 text-sm max-[1440px]:text-[13px] leading-relaxed text-white/80">
+                    At <span className="font-semibold text-white">WandR</span>, we turn structure into an art form,
+                    giving you the space to focus on what you do best while we take care of the rest.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right — Car-swerve anim */}
+              <div className="flex items-center justify-right">
+                <VideoLoop
+                  src="/car-swerve.webm"
+                  className="w-full max-w-[780px] max-[1440px]:max-w-[620px] h-auto"
+                  rounded="rounded-3xl"
+                  contain
+                />
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    {/* Row 2 (Dark teal) */}
-    <div className="bg-[#163f3f]">
-      <div className="h-full flex items-center">
-        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
-          <div className="grid grid-cols-2 items-center gap-12">
-            {/* Left — Journey copy */}
-            <div className="flex items-center justify-center text-center">
-              <div className="max-w-[44ch]">
-                <h2 className="text-[40px] font-extrabold tracking-[-0.02em] leading-tight text-white">
-                  Every journey
-                  <br />
-                  is <span className="text-wandr-rose">different</span>
-                </h2>
-
-                <p className="mt-6 text-[22px] font-extrabold tracking-normal text-white">
-                  we’re here to make yours
-                  <br />
-                  easier to navigate.
-                </p>
-
-                <p className="mt-6 text-sm leading-relaxed text-white/80">
-                  At <span className="font-semibold text-white">WandR</span>, we turn structure into an art form,
-                  giving you the space to focus on what you do best while we take care of the rest.
-                </p>
-              </div>
-            </div>
-
-            {/* Right — Car-swerve anim */}
-            <div className="flex items-center justify-center">
-              <VideoLoop
-                src="/car-swerve.webm"
-                className="w-full max-w-[780px] h-auto"
-                rounded="rounded-3xl"
-                contain
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
+  </section>
 
 {/* 4+5 — SERVICES + EXPERIENCE (COMBINED 2x2, FULL-BLEED ROW BACKGROUNDS) */}
-<section data-snap className="h-[100svh]">
-  <div className="h-full grid grid-rows-2">
-    {/* Row 1 (Wilfred) */}
-    <div className="bg-[color:var(--wandr-wilfred)]">
-      <div className="h-full flex items-center">
-        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
-          <div className="grid grid-cols-2 items-center gap-12">
-            {/* Left — Virtual Assistance */}
-            <div className="flex items-center justify-center text-center">
-              <div className="max-w-[40ch]">
-                <VideoLoop
-                  src="/admin.webm"
-                  className="w-[380px] h-auto mx-auto mb-6"
-                  rounded="rounded-none"
-                  contain
-                />
-                <h3 className="text-[34px] font-extrabold tracking-tight mb-3 text-white">
+<section
+  data-snap
+  className="h-[100svh] max-[1440px]:h-[100dvh] max-[1440px]:min-h-[720px]"
+>
+  {/* Row 1 (Wilfred) */}
+  <div className="bg-[color:var(--wandr-wilfred)]">
+    <div className="h-full flex items-center">
+      <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10 max-[1440px]:py-8">
+        <div className="grid grid-cols-2 items-center gap-12 max-[1440px]:gap-8">
+          {/* Left — Virtual Assistance */}
+          <div className="flex items-center justify-center text-right">
+            <div className="max-w-[38ch]">
+              <VideoLoop
+                src="/admin.webm"
+                className="w-[380px] max-[1440px]:w-[280px] h-auto mx-auto mb-6 max-[1440px]:mb-4"
+                rounded="rounded-none"
+                contain
+              />
+
+              {/* ✅ text nudge wrapper */}
+              <div className="-mt-[6px] max-[1440px]:-mt-[4px]">
+                <h3 className="text-[34px] max-[1440px]:text-[28px] font-extrabold tracking-tight mb-3 max-[1440px]:mb-2 text-white">
                   Virtual <span className="text-wandr-rose">Assistance</span>
                 </h3>
-                <p className="text-sm text-white/80 leading-relaxed">
-                  Inbox, admin, scheduling, documents, follow-ups — we handle the busywork so you can stay in flow.
-                </p>
-              </div>
-            </div>
-
-            {/* Right — Project Management */}
-            <div className="flex items-center justify-center text-center">
-              <div className="max-w-[40ch]">
-                <VideoLoop
-                  src="/timeline.webm"
-                  className="w-[420px] h-auto mx-auto mb-6"
-                  rounded="rounded-none"
-                  contain
-                />
-                <h3 className="text-[34px] font-extrabold tracking-tight mb-3 text-white">
-                  Project <span className="text-wandr-rose">Management</span>
-                </h3>
-                <p className="text-sm text-white/80 leading-relaxed">
-                  Timelines, coordination, client comms, deliverables — we keep projects organised and moving forward.
+                <p className="text-sm max-[1440px]:text-[13px] text-white/80 leading-relaxed">
+                  Reliable, detail-driven administrative support to keep your business
+                  running smoothly — from inbox and calendar management to client
+                  communication and travel planning..
                 </p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    {/* Row 2 (Dark teal) */}
-    <div className="bg-[#163f3f]">
-      <div className="h-full flex items-center">
-        <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-10">
-          <div className="grid grid-cols-2 items-center gap-12">
-            {/* Left — 15+ Years */}
-            <div className="flex items-center">
-              <div className="max-w-[56ch]">
-                <div className="text-[58px] font-black leading-none tracking-tight text-white">
-                  15+ <span className="font-semibold text-white/90">Years</span>
-                </div>
-
-                <p className="mt-6 text-[16px] leading-[2.0] text-white/85">
-                  After more than <span className="font-semibold text-white">15 years</span> working for{" "}
-                  <span className="font-semibold text-white">FMCG</span> and{" "}
-                  <span className="font-semibold text-white">creative advertising agencies</span>, we understand the rhythm
-                  of projects and what drives them forward: the long hours, shifting priorities, and constant movement between
-                  inspiration and delivery.
-                </p>
-              </div>
-            </div>
-
-            {/* Right — Car road anim */}
-            <div className="flex items-center justify-center">
+          {/* Right — Project Management */}
+          <div className="flex items-center justify-left text-left">
+            {/* ✅ only change here: shift this whole text “box” LEFT a bit without shrinking it */}
+            <div className="max-w-[38ch] relative -left-[18px] max-[1440px]:-left-[12px]">
               <VideoLoop
-                src="/car-road.webm"
-                className="w-full max-w-[850px] h-auto"
-                rounded="rounded-xl"
+                src="/timeline-3.webm"
+                className="w-[420px] max-[1440px]:w-[280px] h-auto mx-auto mb-6 max-[1440px]:mb-4"
+                rounded="rounded-none"
                 contain
               />
+
+              {/* ✅ text nudge wrapper */}
+              <div className="-mt-[6px] max-[1440px]:-mt-[4px]">
+                <h3 className="text-[34px] max-[1440px]:text-[28px] font-extrabold tracking-tight mb-3 max-[1440px]:mb-2 text-white">
+                  Project <span className="text-wandr-rose">Management</span>
+                </h3>
+                <p className="text-sm max-[1440px]:text-[13px] text-white/80 leading-relaxed">
+                  Stay on track from concept to completion. We manage scheduling, key
+                  milestones, and communication with precision, ensuring your ideas
+                  never get lost in logistics.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+{/* Row 2 (Dark teal) */}
+<section className="bg-[#163f3f] min-h-screen items-center overflow-hidden">
+  <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-20 max-[1440px]:py-16">
+    <div className="grid grid-cols-2 items-center gap-0">
+
+      {/* Left — keep your original alignment */}
+      <div className="flex items-center justify-center text-right pr-12 max-[1440px]:pr-8">
+        <div className="max-w-[38ch]">
+          <div className="text-[58px] max-[1440px]:text-[48px] font-black leading-none tracking-tight text-white">
+            15+ <span className="font-semibold text-white/90">Years</span>
+          </div>
+
+          <p className="mt-6 max-[1440px]:mt-4 text-[16px] max-[1440px]:text-[14px] leading-[2.0] max-[1440px]:leading-[1.8] text-white/85">
+            After more than <span className="font-semibold text-white">15 years</span> working for{" "}
+            <span className="font-semibold text-white">FMCG</span> and{" "}
+            <span className="font-semibold text-white">creative advertising agencies</span>, we understand the rhythm
+            of projects and what drives them forward: the long hours, shifting priorities, and constant movement between
+            inspiration and delivery.
+          </p>
+        </div>
+      </div>
+
+      {/* Right — Car road anim */}
+      <div className="flex items-left justify-start pr-10 max-[1440px]:pl-2">
+        <div className="w-full max-w-[850px] max-[1440px]:max-w-[480px] h-[280px] max-[1440px]:h-[220px] overflow-hidden">
+          <VideoLoop
+            src="/car-road-2.webm"
+            className="w-[350px]] h-full"
+            rounded="rounded-xl"
+            contain
+          />
+        </div>
+      </div>
+
+    </div>
+  </div>
 </section>
+
+
+</section>
+
+
 
 
   {/* 6 — PATH */}
   <section
     data-snap
-    className="h-[100svh] bg-[color:var(--wandr-rose)] px-6 flex items-center"
+    className="h-[100svh] max-[1440px]:h-[100dvh] max-[1440px]:min-h-[720px] bg-[color:var(--wandr-rose)] px-6 flex items-center"
   >
-    <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-12">
-      <h2 className="text-[34px] font-extrabold text-[color:var(--wandr-joyce)]">
+    <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-12 max-[1440px]:gap-8">
+      <h2 className="text-[34px] max-[1440px]:text-[28px] font-extrabold text-[color:var(--wandr-joyce)]">
         Every path is unique — unpredictable
         <br />
         and always evolving
       </h2>
 
-      <VideoLoop src="/flying-car.webm" className="w-[720px] h-[360px]" />
+      <VideoLoop
+        src="/flying-car.webm"
+        className="w-[720px] h-[360px] max-[1440px]:w-[560px] max-[1440px]:h-[280px]"
+      />
 
-      <p className="text-[34px] font-extrabold max-w-[36ch] text-[color:var(--wandr-joyce)]">
+      <p className="text-[34px] max-[1440px]:text-[28px] font-extrabold max-w-[36ch] text-[color:var(--wandr-joyce)]">
         Our role is to bring clarity to wherever your creativity wanders.
       </p>
     </div>
   </section>
 
   {/* 7 — CONTACT */}
-  <section data-snap className="h-[100svh] px-6 flex items-center bg-[color:var(--wandr-wilfred)]">
-    <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-6">
-      <p className="max-w-[52ch] text-xs text-white/75">
-        If you’re ready to simplify your workload, let’s build a system that
-        supports you.
+  <section
+    data-snap
+    className="h-[100svh] max-[1440px]:h-[100dvh] max-[1440px]:min-h-[720px] px-6 flex items-center bg-[color:var(--wandr-wilfred)]"
+  >
+    <div className="mx-auto max-w-6xl w-full flex flex-col items-center text-center gap-6 max-[1440px]:gap-5">
+      <p className="max-w-[52ch] text-xs max-[1440px]:text-[12px] text-white/75">
+        If you’re ready to simplify your refocus on what you love creating. WandR can help you find your rhythm and direction again.
       </p>
 
       <a
@@ -770,7 +862,7 @@ export default function HomePage() {
         alt="WandR"
         width={320}
         height={110}
-        className="w-[350px] h-auto"
+        className="w-[350px] max-[1440px]:w-[300px] h-auto"
       />
     </div>
   </section>
