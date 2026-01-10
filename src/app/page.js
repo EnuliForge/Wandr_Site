@@ -248,39 +248,59 @@ export default function HomePage() {
   const [contactStatus, setContactStatus] = useState({ state: "idle", message: "" });
 
   async function onSubmit(e) {
-    e.preventDefault();
-    setContactStatus({ state: "sending", message: "" });
+  e.preventDefault();
+  setContactStatus({ state: "sending", message: "" });
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+  const form = e.currentTarget;
 
-    const payload = {
-      name: String(formData.get("name") || "").trim(),
-      email: String(formData.get("email") || "").trim(),
-      company: String(formData.get("company") || "").trim(),
-      message: String(formData.get("message") || "").trim(),
-    };
+  // Honeypot (Formspree)
+  if (form._gotcha?.value) return;
 
-    if (!payload.name || !payload.email || !payload.message) {
-      setContactStatus({ state: "error", message: "Please fill in name, email, and message." });
-      return;
-    }
+  const formData = new FormData(form);
 
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+  const payload = {
+    name: String(formData.get("name") || "").trim(),
+    email: String(formData.get("email") || "").trim(),
+    company: String(formData.get("company") || "").trim(),
+    message: String(formData.get("message") || "").trim(),
+  };
 
-      if (!res.ok) throw new Error();
-
-      form.reset();
-      setContactStatus({ state: "success", message: "Message sent. We’ll get back to you shortly." });
-    } catch {
-      setContactStatus({ state: "error", message: "Failed to send. Please try again." });
-    }
+  if (!payload.name || !payload.email || !payload.message) {
+    setContactStatus({
+      state: "error",
+      message: "Please fill in name, email, and message.",
+    });
+    return;
   }
+
+  try {
+    const res = await fetch("https://formspree.io/f/xlggrlwq", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.errors?.[0]?.message || "Failed to send.");
+    }
+
+    form.reset();
+    setContactStatus({
+      state: "success",
+      message: "Message sent. We’ll get back to you shortly.",
+    });
+  } catch (err) {
+    setContactStatus({
+      state: "error",
+      message: err?.message || "Failed to send. Please try again.",
+    });
+  }
+}
 
   return (
     <main className="min-h-screen bg-[color:var(--wandr-wilfred)] text-white overflow-hidden md:overflow-visible">
@@ -293,7 +313,7 @@ export default function HomePage() {
         className="md:hidden overflow-y-auto [-webkit-overflow-scrolling:touch]"
       >
         {/* 1 — HERO */}
-        <section className="bg-[color:var(--wandr-wilfred)] px-6 py-48">
+        <section className="bg-[color:var(--wandr-wilfred)] px-6 py-24">
           <div
             data-cascade
             style={{
@@ -576,14 +596,13 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CONTACT */}
+       {/* CONTACT */}
 <section id="contact" className="bg-[#16908c]">
   <div className="mx-auto max-w-6xl w-full px-6 lg:px-20 py-12 md:py-16">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center">
 
       {/* LEFT — COPY */}
-<div className="text-center md:text-left">
-
+      <div className="text-center md:text-left">
         <div className="text-wandr-joyce font-extrabold tracking-tight text-[30px] md:text-[42px] leading-[1.05]">
           Let’s Work Together
         </div>
@@ -608,7 +627,21 @@ export default function HomePage() {
 
       {/* RIGHT — FORM */}
       <div className="bg-white/70 rounded-3xl p-5 sm:p-6 md:p-6 shadow-sm border border-black/5 w-full md:max-w-[520px] md:ml-auto">
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form
+          onSubmit={onSubmit}
+          action="https://formspree.io/f/xlggrlwq"
+          method="POST"
+          className="space-y-4"
+        >
+          {/* Formspree helpers */}
+          <input type="hidden" name="_subject" value="New WandR enquiry" />
+          <input
+            type="text"
+            name="_gotcha"
+            className="hidden"
+            tabIndex={-1}
+            autoComplete="off"
+          />
 
           {/* Name + Email: stack on mobile, 2-col on md+ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -691,6 +724,7 @@ export default function HomePage() {
     </div>
   </div>
 </section>
+
 
 {/* MOBILE FOOTER */}
 <div className="flex flex-col items-center gap-2 text-[11px] leading-none bg-wandr-joyce pt-2 pb-2 text-white/60 sm:hidden">
@@ -1011,77 +1045,91 @@ export default function HomePage() {
 
       {/* RIGHT — FORM */}
       <div className="bg-white/70 rounded-3xl p-6 shadow-sm border border-black/5 max-w-[520px] ml-auto">
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form
+          onSubmit={onSubmit}
+          action="https://formspree.io/f/xlggrlwq"
+          method="POST"
+          className="space-y-4"
+        >
+          {/* Formspree helpers */}
+          <input type="hidden" name="_subject" value="New WandR enquiry" />
+          <input
+            type="text"
+            name="_gotcha"
+            className="hidden"
+            tabIndex={-1}
+            autoComplete="off"
+          />
 
           <div className="grid grid-cols-2 gap-4">
-  <label className="block">
-    <span className="text-sm font-semibold text-[#163f3f]">Name *</span>
-    <input
-      name="name"
-      type="text"
-      required
-      autoComplete="name"
-      className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10"
-      placeholder="Your name"
-    />
-  </label>
+            <label className="block">
+              <span className="text-sm font-semibold text-[#163f3f]">Name *</span>
+              <input
+                name="name"
+                type="text"
+                required
+                autoComplete="name"
+                className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10"
+                placeholder="Your name"
+              />
+            </label>
 
-  <label className="block">
-    <span className="text-sm font-semibold text-[#163f3f]">Email *</span>
-    <input
-      name="email"
-      type="email"
-      required
-      autoComplete="email"
-      className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10"
-      placeholder="you@email.com"
-    />
-  </label>
-</div>
+            <label className="block">
+              <span className="text-sm font-semibold text-[#163f3f]">Email *</span>
+              <input
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10"
+                placeholder="you@email.com"
+              />
+            </label>
+          </div>
 
-<label className="block">
-  <span className="text-sm font-semibold text-[#163f3f]">Company (optional)</span>
-  <input
-    name="company"
-    type="text"
-    autoComplete="organization"
-    className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10"
-    placeholder="Studio / Brand / Team"
-  />
-</label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[#163f3f]">Company (optional)</span>
+            <input
+              name="company"
+              type="text"
+              autoComplete="organization"
+              className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10"
+              placeholder="Studio / Brand / Team"
+            />
+          </label>
 
-<label className="block">
-  <span className="text-sm font-semibold text-[#163f3f]">Message *</span>
-  <textarea
-    name="message"
-    required
-    rows={5}
-    className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10 resize-none"
-    placeholder="What do you need help with? Any deadlines or links?"
-  />
-</label>
+          <label className="block">
+            <span className="text-sm font-semibold text-[#163f3f]">Message *</span>
+            <textarea
+              name="message"
+              required
+              rows={5}
+              className="mt-2 w-full rounded-2xl px-4 py-3 bg-white text-[#163f3f] placeholder:text-[#163f3f]/50 caret-[#163f3f] border border-black/10 focus:outline-none focus:ring-2 focus:ring-black/10 resize-none"
+              placeholder="What do you need help with? Any deadlines or links?"
+            />
+          </label>
 
-<div className="pt-2 flex items-center justify-between gap-4">
-  <button
-    type="submit"
-    disabled={contactStatus.state === "sending"}
-    className="rounded-2xl px-5 py-3 font-semibold bg-[#163f3f] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-  >
-    {contactStatus.state === "sending" ? "Sending..." : "Send message"}
-  </button>
+          <div className="pt-2 flex items-center justify-between gap-4">
+            <button
+              type="submit"
+              disabled={contactStatus.state === "sending"}
+              className="rounded-2xl px-5 py-3 font-semibold bg-[#163f3f] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {contactStatus.state === "sending" ? "Sending..." : "Send message"}
+            </button>
 
-  <div
-    className={`text-sm md:text-right ${
-      contactStatus.state === "success"
-        ? "text-emerald-700"
-        : contactStatus.state === "error"
-        ? "text-red-600"
-        : "text-transparent"
-    }`}
-  >
-    {contactStatus.message || ""}
-  </div>
-</div>
+            <div
+              className={`text-sm md:text-right ${
+                contactStatus.state === "success"
+                  ? "text-emerald-700"
+                  : contactStatus.state === "error"
+                  ? "text-red-600"
+                  : "text-transparent"
+              }`}
+            >
+              {contactStatus.message || ""}
+            </div>
+          </div>
 
           <p className="text-[11px] text-[#163f3f]/55 leading-relaxed pt-2">
             By sending this form, you agree to be contacted about your request. No spam.
@@ -1092,6 +1140,7 @@ export default function HomePage() {
     </div>
   </div>
 </section>
+
 
 
       <footer className="bg-[#163f3f]">
