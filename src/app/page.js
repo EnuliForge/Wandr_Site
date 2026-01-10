@@ -313,7 +313,7 @@ export default function HomePage() {
         className="md:hidden overflow-y-auto [-webkit-overflow-scrolling:touch]"
       >
         {/* 1 — HERO */}
-        <section className="bg-[color:var(--wandr-wilfred)] px-6 py-24">
+        <section className="bg-[color:var(--wandr-wilfred)] px-6 py-48">
           <div
             data-cascade
             style={{
@@ -321,7 +321,7 @@ export default function HomePage() {
               "--cascade-dur": "850ms",
               "--cascade-stagger": "220ms",
             }}
-            className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-6"
+            className="mx-auto max-w-[560px] flex flex-col items-center text-center gap-8"
           >
             <div data-cascade-item style={{ "--i": 0 }}>
               <Image
