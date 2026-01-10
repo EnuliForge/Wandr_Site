@@ -293,7 +293,7 @@ export default function HomePage() {
         className="md:hidden overflow-y-auto [-webkit-overflow-scrolling:touch]"
       >
         {/* 1 — HERO */}
-        <section className="bg-[color:var(--wandr-wilfred)] px-6 py-12">
+        <section className="bg-[color:var(--wandr-wilfred)] px-6 py-48">
           <div
             data-cascade
             style={{
@@ -725,32 +725,33 @@ export default function HomePage() {
           ========================= */}
       <div ref={desktopRef} className="hidden md:block h-screen overflow-y-auto">
         {/* 1 — HERO */}
-        <section
-          data-snap
-          className="min-h-[100svh] max-[1440px]:min-h-[720px] grid bg-[color:var(--wandr-wilfred)] place-items-center py-14 sm:py-16 lg:py-20"
-        >
-          <div className="mx-auto max-w-4xl w-full px-14 lg:px-20 py-12 flex items-center gap-10 max-[1440px]:gap-8">
-            <Image
-              src="/wandr-logo-light-1.svg"
-              alt="WandR"
-              width={480}
-              height={160}
-              priority
-              className="h-auto w-[420px] max-w-full max-[1440px]:w-[360px]"
-            />
+<section
+  data-snap
+  className="min-h-[100svh] max-[1440px]:min-h-[720px] grid bg-[color:var(--wandr-wilfred)] place-items-center py-14 sm:py-16 lg:py-20"
+>
+  <div className="mx-auto max-w-5xl w-full px-10 lg:px-20 py-12 flex flex-col items-center text-center gap-8 max-[1440px]:gap-7">
+    <Image
+      src="/wandr-logo-light-1.svg"
+      alt="WandR"
+      width={640}
+      height={220}
+      priority
+      className="h-auto w-[520px] max-w-full max-[1440px]:w-[460px]"
+    />
 
-            <h1 className="ml-auto text-right text-[34px] max-[1440px]:text-[28px] leading-tight font-extrabold tracking-normal text-white whitespace-nowrap">
-              We help you{" "}
-              <RollingWords
-                words={["simplify,", "optimise,", "organise."]}
-                intervalMs={900}
-                durationMs={260}
-                className="text-wandr-rose"
-                slotClassName="justify-end"
-              />
-            </h1>
-          </div>
-        </section>
+    <h1 className="text-center text-[46px] max-[1440px]:text-[40px] leading-[1.08] font-extrabold tracking-tight text-white">
+      We help you{" "}
+      <RollingWords
+        words={["simplify,", "optimise,", "organise."]}
+        intervalMs={900}
+        durationMs={260}
+        className="text-wandr-rose"
+        slotClassName="justify-center"
+      />
+    </h1>
+  </div>
+</section>
+
 
        {/* 2+3 — ADMIN + JOURNEY (COMBINED 2x2, FULL-BLEED ROW BACKGROUNDS) */}
 <section data-snap className="min-h-[100svh]">
