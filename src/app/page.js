@@ -538,10 +538,7 @@ export default function HomePage() {
             </div>
 
             <p data-cascade-item className="text-sm leading-relaxed text-white/80 max-w-[44ch]" style={{ "--i": 1 }}>
-              After more than <span className="font-semibold text-white">15 years</span>{" "}
-              working for <span className="font-semibold text-white">FMCG</span> and{" "}
-              <span className="font-semibold text-white">creative advertising agencies</span>,
-              we understand the rhythm of projects and what drives them forward.
+              With over <span className="font-semibold text-white">15 years</span> of hands-on experience in project and relationship management, we know what it takes to maintain momentum and deliver successful outcomes.
             </p>
 
             <div data-cascade-item style={{ "--i": 2 }} className="w-full flex justify-center">
@@ -965,11 +962,7 @@ export default function HomePage() {
             </div>
 
             <p className="mt-6 max-[1440px]:mt-4 text-[16px] max-[1440px]:text-[14px] leading-[2.0] max-[1440px]:leading-[1.8] text-white/85">
-              After more than <span className="font-semibold text-white">15 years</span> working for{" "}
-              <span className="font-semibold text-white">FMCG</span> and{" "}
-              <span className="font-semibold text-white">creative advertising agencies</span>, we understand the rhythm
-              of projects and what drives them forward: the long hours, shifting priorities, and constant movement between
-              inspiration and delivery.
+              With over <span className="font-semibold text-white">15 years</span> of hands-on experience in project and relationship management, we know what it takes to maintain momentum and deliver successful outcomes.
             </p>
           </div>
         </div>
