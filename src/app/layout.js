@@ -8,9 +8,14 @@ const heebo = Heebo({
 });
 
 export const metadata = {
-  title: "WandR",
-  description: "Virtual Assistants & Business Support",
-};
+  title: "WandR | Administrative Support Services Netherlands",
+  description:
+    "Professional administrative support and business management services based in the Netherlands.",
+  metadataBase: new URL("https://www.wilfredandr.com"),
+  alternates: {
+    canonical: "/",
+  },
+}
 
 export default function RootLayout({ children }) {
   return (
@@ -21,3 +26,15 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      name: "WandR",
+      url: "https://www.wilfredandr.com",
+    }),
+  }}
+/>
